@@ -66,15 +66,16 @@ struct HikeLogCreationView: View {
                     .foregroundColor(.primary)
                     .lineLimit(2)
                 
-                HStack(spacing: 4) {
-                    Text("\(mountain.elevationMASL) MASL")
-                        .fontWeight(.heavy)
-                        .foregroundColor(.teal)
-                    Text("•").foregroundColor(.gray)
-                    Text(mountain.region)
-                        .foregroundColor(.secondary)
-                }
-                .font(.caption)
+                Text("\(mountain.elevationMASL) MASL")
+                    .font(.caption)
+                    .fontWeight(.heavy)
+                    .foregroundColor(.teal)
+                
+                Text(mountain.region)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
         }
@@ -92,10 +93,21 @@ struct HikeLogCreationView: View {
                 .padding(.horizontal)
             
             VStack(spacing: 0) {
-                // Date & Time
+                // Date & Time Start
                 DatePicker(
-                    "Climb Timestamp",
-                    selection: $viewModel.dateTime,
+                    "Start",
+                    selection: $viewModel.dateTimeStart,
+                    displayedComponents: [.date, .hourAndMinute]
+                )
+                .padding()
+                
+                Divider().padding(.leading)
+                
+                // Date & Time End
+                DatePicker(
+                    "End",
+                    selection: $viewModel.dateTimeEnd,
+                    in: viewModel.dateTimeStart...,
                     displayedComponents: [.date, .hourAndMinute]
                 )
                 .padding()

@@ -11,6 +11,8 @@ import SwiftUI
 struct PeakDetailView: View {
     let mountain: Mountain
     @State private var showingLogModal: Bool = false
+    /// Regenerated on every toolbar tap to guarantee a fresh @StateObject in the sheet.
+    @State private var logSessionId = UUID()
     
     var body: some View {
         ScrollView {
@@ -87,35 +89,26 @@ struct PeakDetailView: View {
                         .background(Color.secondary.opacity(0.1))
                         .cornerRadius(12)
                 }
-                
-                Spacer(minLength: 30)
-                
-                // Action Trigger Button
-                Button(action: {
-                    showingLogModal = true
-                }) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "camera.badge.ellipsis")
-                            .font(.title3)
-                        Text("Log Climb & Upload Highlights")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.emeraldGreen)
-                    .cornerRadius(14)
-                    .shadow(color: Color.emeraldGreen.opacity(0.3), radius: 8, x: 0, y: 4)
-                }
-                .sheet(isPresented: $showingLogModal) {
-                    HikeLogCreationView(mountain: mountain)
-                }
             }
             .padding(.horizontal)
         }
         .navigationTitle(mountain.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    logSessionId = UUID()
+                    showingLogModal = true
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .sheet(isPresented: $showingLogModal) {
+            HikeLogCreationView(mountain: mountain)
+                .id(logSessionId)
+        }
     }
 }
 

@@ -35,7 +35,8 @@ enum ClimbOutcome: String, CaseIterable {
 class HikeLogViewModel: ObservableObject {
     
     // MARK: - Form Fields
-    @Published var dateTime: Date = Date()
+    @Published var dateTimeStart: Date = Date()
+    @Published var dateTimeEnd: Date = Calendar.current.date(byAdding: .hour, value: 8, to: Date()) ?? Date()
     @Published var outcome: ClimbOutcome = .summited
     
     // MARK: - Status
@@ -52,13 +53,19 @@ class HikeLogViewModel: ObservableObject {
             return
         }
         
+        guard dateTimeEnd > dateTimeStart else {
+            errorMessage = "End time must be after start time."
+            return
+        }
+        
         isSaving = true
         errorMessage = nil
         
         let hikeLog = HikeLog(
             userId: user.uid,
             mountainId: mountainId,
-            dateTime: dateTime,
+            dateTimeStart: dateTimeStart,
+            dateTimeEnd: dateTimeEnd,
             didSummit: outcome == .summited,
             photoUrls: []
         )

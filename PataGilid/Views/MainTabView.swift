@@ -24,27 +24,12 @@ struct MainTabView: View {
                 }
                 .tag(0)
             
-            // Tab 2: Hiker Logs
-            NavigationStack {
-                VStack(spacing: 20) {
-                    Image(systemName: "note.text")
-                        .font(.system(size: 64))
-                        .foregroundColor(.green)
-                    Text("My Summit Logs")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                    Text("Log your successful climbs with up to 3 compressed photos per entry.")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+            // Tab 2: Summit Logs
+            SummitLogsView()
+                .tabItem {
+                    Label("My Climbs", systemImage: "figure.hiking")
                 }
-                .navigationTitle("Climb Journal")
-            }
-            .tabItem {
-                Label("My Climbs", systemImage: "figure.hiking")
-            }
-            .tag(1)
+                .tag(1)
             
             // Tab 3: Profile & Admin Utilities
             NavigationStack {

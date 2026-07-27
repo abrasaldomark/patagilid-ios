@@ -14,6 +14,7 @@ struct MainTabView: View {
     @State private var selectedTab: Int = 0
     @State private var isSeeding: Bool = false
     @State private var seedMessage: String?
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = true
     
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -101,6 +102,17 @@ struct MainTabView: View {
                     }
                     
                     Section(header: Text("Account Settings")) {
+                        Button {
+                            hasSeenOnboarding = false
+                        } label: {
+                            HStack {
+                                Image(systemName: "sparkles")
+                                    .foregroundColor(.orange)
+                                Text("Replay Onboarding Tour")
+                                    .foregroundColor(.primary)
+                            }
+                        }
+                        
                         Button(role: .destructive, action: {
                             authViewModel.signOut()
                         }) {

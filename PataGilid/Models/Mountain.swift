@@ -19,7 +19,7 @@ enum IslandGroup: String, Codable, CaseIterable, Identifiable {
 
 /// Represents a Philippine mountain peak reference entity stored in Cloud Firestore (`mountains` collection).
 struct Mountain: Codable, Identifiable, Hashable {
-    @DocumentID var id: String?
+    var id: String
     
     /// Display name of the peak (e.g., "Mt. Pulag", "Mt. Guiting-Guiting").
     var name: String

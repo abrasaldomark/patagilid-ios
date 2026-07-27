@@ -6,18 +6,22 @@
 //
 
 import SwiftUI
-import SwiftData
 
+/// The primary application entry view that directs the mountaineer to Google Sign-In or the main dashboard.
 struct ContentView: View {
-
+    @StateObject private var authViewModel = AuthViewModel()
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        Group {
+            if authViewModel.isLoggedIn {
+                MainTabView(authViewModel: authViewModel)
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+            } else {
+                LoginView(authViewModel: authViewModel)
+                    .transition(.opacity)
+            }
         }
-        .padding()
+        .animation(.easeInOut(duration: 0.35), value: authViewModel.isLoggedIn)
     }
 }
 

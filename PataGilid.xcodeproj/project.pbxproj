@@ -15,7 +15,7 @@
 		54B387793017253700CAAC0B /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 54B387783017253700CAAC0B /* FirebaseCrashlytics */; };
 		54B3877B3017253700CAAC0B /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 54B3877A3017253700CAAC0B /* FirebaseFirestore */; };
 		54B3877D3017253700CAAC0B /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 54B3877C3017253700CAAC0B /* FirebaseMessaging */; };
-		54B3877F301725DE00CAAC0B /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 54B3877E301725DE00CAAC0B /* GoogleService-Info.plist */; };
+		54B387A73017471F00CAAC0B /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 54B387A63017471F00CAAC0B /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -39,12 +39,25 @@
 		54778C29301721DE000E29EB /* PataGilid.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PataGilid.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		54778C38301721E0000E29EB /* PataGilidTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PataGilidTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		54778C42301721E0000E29EB /* PataGilidUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PataGilidUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		54B3877E301725DE00CAAC0B /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		54B387A63017471F00CAAC0B /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		54B387A93017489500CAAC0B /* Exceptions for "PataGilid" folder in "PataGilid" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 54778C28301721DE000E29EB /* PataGilid */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		54778C2B301721DE000E29EB /* PataGilid */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				54B387A93017489500CAAC0B /* Exceptions for "PataGilid" folder in "PataGilid" target */,
+			);
 			path = PataGilid;
 			sourceTree = "<group>";
 		};
@@ -100,7 +113,7 @@
 				54778C3B301721E0000E29EB /* PataGilidTests */,
 				54778C45301721E0000E29EB /* PataGilidUITests */,
 				54778C2A301721DE000E29EB /* Products */,
-				54B3877E301725DE00CAAC0B /* GoogleService-Info.plist */,
+				54B387A63017471F00CAAC0B /* GoogleService-Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
@@ -248,7 +261,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				54B3877F301725DE00CAAC0B /* GoogleService-Info.plist in Resources */,
+				54B387A73017471F00CAAC0B /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -459,6 +472,7 @@
 				DEVELOPMENT_TEAM = J88XR9DQS4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PataGilid/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -470,7 +484,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = com.abrasaldomark.PataGilid;
+				PRODUCT_BUNDLE_IDENTIFIER = com.devmarkabrasaldo.PataGilid;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -492,6 +506,7 @@
 				DEVELOPMENT_TEAM = J88XR9DQS4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PataGilid/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -503,7 +518,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = com.abrasaldomark.PataGilid;
+				PRODUCT_BUNDLE_IDENTIFIER = com.devmarkabrasaldo.PataGilid;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;

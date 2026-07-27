@@ -93,14 +93,13 @@ struct PeaksListView: View {
                         }
                         
                         Section(header: Text("Filter by Region")) {
-                            Button(action: { viewModel.selectedRegion = nil }) {
+                            Button(action: { viewModel.selectRegion(nil) }) {
                                 Text("All Regions")
                             }
                             
                             ForEach(viewModel.availableRegions, id: \.self) { region in
                                 Button(action: {
-                                    viewModel.selectedRegion = region
-                                    viewModel.selectedIslandGroup = nil
+                                    viewModel.selectRegion(region)
                                 }) {
                                     HStack {
                                         Text(region)

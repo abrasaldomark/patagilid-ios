@@ -24,8 +24,9 @@ class PeaksViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     
     var availableRegions: [String] {
-        let regions = allPeaks.map { $0.region }.removingDuplicates()
-        return regions.sorted()
+        let candidatePeaks = selectedIslandGroup != nil ? allPeaks.filter { $0.islandGroup == selectedIslandGroup } : allPeaks
+        let regions = candidatePeaks.map { $0.region }.removingDuplicates()
+        return regions.sorted { $0.compare($1, options: [.numeric, .caseInsensitive]) == .orderedAscending }
     }
     
     var filteredAndSortedPeaks: [Mountain] {
@@ -75,11 +76,14 @@ class PeaksViewModel: ObservableObject {
     }
     
     func selectIslandGroup(_ group: IslandGroup?) {
-        if selectedIslandGroup == group {
-            selectedIslandGroup = nil // Toggle off
-        } else {
-            selectedIslandGroup = group
-            selectedRegion = nil // Reset regional filter on group change
+        selectedIslandGroup = group
+        selectedRegion = nil // Clear any regional sub-filter while keeping the Island Group firmly selected
+    }
+    
+    func selectRegion(_ region: String?) {
+        selectedRegion = region
+        if let region = region, let match = allPeaks.first(where: { $0.region == region }) {
+            selectedIslandGroup = match.islandGroup
         }
     }
     

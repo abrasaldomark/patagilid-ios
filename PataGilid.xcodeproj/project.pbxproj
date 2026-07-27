@@ -14,6 +14,7 @@
 		54B387793017253700CAAC0B /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 54B387783017253700CAAC0B /* FirebaseCrashlytics */; };
 		54B3877B3017253700CAAC0B /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 54B3877A3017253700CAAC0B /* FirebaseFirestore */; };
 		54B3877D3017253700CAAC0B /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 54B3877C3017253700CAAC0B /* FirebaseMessaging */; };
+		54B3877F301725DE00CAAC0B /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 54B3877E301725DE00CAAC0B /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -37,6 +38,7 @@
 		54778C29301721DE000E29EB /* PataGilid.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PataGilid.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		54778C38301721E0000E29EB /* PataGilidTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PataGilidTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		54778C42301721E0000E29EB /* PataGilidUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PataGilidUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		54B3877E301725DE00CAAC0B /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -96,6 +98,7 @@
 				54778C3B301721E0000E29EB /* PataGilidTests */,
 				54778C45301721E0000E29EB /* PataGilidUITests */,
 				54778C2A301721DE000E29EB /* Products */,
+				54B3877E301725DE00CAAC0B /* GoogleService-Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
@@ -241,6 +244,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				54B3877F301725DE00CAAC0B /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

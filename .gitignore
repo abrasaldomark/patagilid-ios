@@ -36,3 +36,10 @@ xcuserdata/
 Packages/
 Package.pins
 .swiftpm/
+
+# Secrets & API Keys
+GoogleService-Info.plist
+*Secrets.plist
+*Config.plist
+!*-Sample.plist
+!*.example.plist

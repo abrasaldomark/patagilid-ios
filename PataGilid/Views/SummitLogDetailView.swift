@@ -17,6 +17,9 @@ struct SummitLogDetailView: View {
             VStack(spacing: 20) {
                 outcomeHero
                 detailCards
+                if !log.photoUrls.isEmpty {
+                    photosCard
+                }
                 Spacer(minLength: 20)
             }
             .padding(.horizontal)
@@ -100,6 +103,49 @@ struct SummitLogDetailView: View {
                     label: "Outcome",
                     value: log.didSummit ? "Successful Summit" : "Turned Back"
                 )
+            }
+        }
+    }
+    
+    // MARK: - Photos Card
+    
+    private var photosCard: some View {
+        sectionCard(title: "Climb Photos (\(log.photoUrls.count))") {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(log.photoUrls, id: \.self) { urlString in
+                        AsyncImage(url: URL(string: urlString)) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                                    .frame(width: 160, height: 160)
+                                    .background(Color.secondary.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 160, height: 160)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                            case .failure:
+                                VStack(spacing: 6) {
+                                    Image(systemName: "photo.fill")
+                                        .foregroundColor(.secondary)
+                                    Text("Failed to load")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(width: 160, height: 160)
+                                .background(Color.secondary.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                    }
+                }
+                .padding()
             }
         }
     }

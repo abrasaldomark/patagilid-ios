@@ -6,12 +6,16 @@
 //
 
 import SwiftUI
+import PhotosUI
 
-/// Modal sheet for recording a climb attempt — date, summit count, and DNF count.
+/// Modal sheet for recording a climb attempt — date, summit count, DNF count, and up to 3 photos.
 struct HikeLogCreationView: View {
     let mountain: Mountain
     @StateObject private var viewModel = HikeLogViewModel()
     @Environment(\.dismiss) private var dismiss
+    
+    @AppStorage("isPataGilidPro") private var isProUser: Bool = false
+    @State private var showProPaywall: Bool = false
     
     var body: some View {
         NavigationStack {
@@ -20,13 +24,18 @@ struct HikeLogCreationView: View {
                     summitBanner
                     activityForm
                     
-                    if let error = viewModel.errorMessage {
-                        errorBanner(error)
+                    if isProUser {
+                        photosForm
+                    } else {
+                        lockedProPhotosCard
                     }
                     
-                    submitButton
-                        .padding(.bottom, 20)
+                    if let error = viewModel.errorMessage {
+                        errorBanner(error)
+                            .padding(.bottom, 12)
+                    }
                 }
+                .padding(.bottom, 24)
             }
             .navigationTitle("Log Ascent")
             .navigationBarTitleDisplayMode(.inline)
@@ -35,9 +44,28 @@ struct HikeLogCreationView: View {
                     Button("Cancel") { dismiss() }
                         .disabled(viewModel.isSaving)
                 }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        viewModel.submitLog(for: mountain.id)
+                    } label: {
+                        if viewModel.isSaving {
+                            ProgressView()
+                                .tint(.emeraldGreen)
+                        } else {
+                            Text("Save")
+                                .fontWeight(.bold)
+                                .foregroundColor(.emeraldGreen)
+                        }
+                    }
+                    .disabled(viewModel.isSaving)
+                }
             }
             .onChange(of: viewModel.didCompleteSuccess) { _, success in
                 if success { dismiss() }
+            }
+            .sheet(isPresented: $showProPaywall) {
+                ProPaywallView()
             }
         }
     }
@@ -164,32 +192,150 @@ struct HikeLogCreationView: View {
         .animation(.easeInOut(duration: 0.15), value: viewModel.outcome)
     }
     
-    private var submitButton: some View {
-        Button {
-            viewModel.submitLog(for: mountain.id)
-        } label: {
-            HStack(spacing: 10) {
-                if viewModel.isSaving {
-                    ProgressView().tint(.white)
-                    Text("Saving record...")
-                } else {
-                    Image(systemName: "checkmark.seal.fill")
-                    Text("Save Climb Record")
+    // MARK: - Photos Attachment Form
+    
+    private var lockedProPhotosCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                Image(systemName: "camera.fill.badge.ellipsis")
+                    .font(.system(size: 26))
+                    .foregroundColor(.orange)
+                    .frame(width: 48, height: 48)
+                    .background(Color.orange.opacity(0.15))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text("Climb Photo Memories")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                        
+                        Text("PRO")
+                            .font(.system(size: 10, weight: .black))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.orange)
+                            .clipShape(Capsule())
+                    }
+                    Text("Attach up to 3 summit & jump-off photos to your climb records.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+            
+            Button {
+                showProPaywall = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "crown.fill")
+                    Text("Unlock PataGilid Pro — ₱249")
+                        .fontWeight(.bold)
+                }
+                .font(.subheadline)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    LinearGradient(
+                        colors: [.orange, .red.opacity(0.85)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(12)
+                .shadow(color: Color.orange.opacity(0.3), radius: 6, x: 0, y: 3)
+            }
+        }
+        .padding(16)
+        .background(Color.secondary.opacity(0.06))
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.orange.opacity(0.35), lineWidth: 1.5)
+        )
+        .padding(.horizontal)
+    }
+    
+    private var photosForm: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Climb Photos")
+                    .font(.headline)
+                Spacer()
+                Text("\(viewModel.selectedImages.count)/3 Max")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(viewModel.selectedImages.count == 3 ? .orange : .secondary)
+            }
+            .padding(.horizontal)
+            
+            VStack(spacing: 16) {
+                if !viewModel.selectedImages.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(Array(viewModel.selectedImages.enumerated()), id: \.offset) { index, uiImage in
+                                ZStack(alignment: .topTrailing) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 2)
+                                    
+                                    Button {
+                                        withAnimation {
+                                            viewModel.removeImage(at: index)
+                                        }
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.title3)
+                                            .foregroundColor(.white)
+                                            .background(Circle().fill(Color.black.opacity(0.6)).frame(width: 20, height: 20))
+                                    }
+                                    .padding(6)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 4)
+                    }
+                }
+                
+                if viewModel.selectedImages.count < 3 {
+                    PhotosPicker(
+                        selection: $viewModel.selectedPhotos,
+                        maxSelectionCount: 3,
+                        matching: .images,
+                        photoLibrary: .shared()
+                    ) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "photo.badge.plus")
+                                .font(.title3)
+                            Text(viewModel.selectedImages.isEmpty ? "Add Photos (Max 3)" : "Change / Add Photos")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundColor(.emeraldGreen)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.emeraldGreen.opacity(0.12))
+                        .cornerRadius(12)
+                        .padding(.horizontal, viewModel.selectedImages.isEmpty ? 0 : 8)
+                    }
+                    .onChange(of: viewModel.selectedPhotos) { _, _ in
+                        Task {
+                            await viewModel.loadPhotos()
+                        }
+                    }
                 }
             }
-            .font(.headline)
-            .fontWeight(.bold)
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(viewModel.isSaving ? Color.gray : Color.emeraldGreen)
+            .padding(14)
+            .background(Color.secondary.opacity(0.06))
             .cornerRadius(14)
-            .shadow(color: viewModel.isSaving ? .clear : Color.emeraldGreen.opacity(0.28),
-                    radius: 8, x: 0, y: 4)
+            .padding(.horizontal)
         }
-        .disabled(viewModel.isSaving)
-        .padding(.horizontal)
-        .animation(.easeInOut(duration: 0.2), value: viewModel.isSaving)
     }
     
     private func errorBanner(_ message: String) -> some View {

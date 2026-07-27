@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import UIKit
+import PhotosUI
 import Combine
 import FirebaseAuth
 import FirebaseFirestore
@@ -30,7 +32,7 @@ enum ClimbOutcome: String, CaseIterable {
     }
 }
 
-/// ViewModel managing hike log form state and Firestore persistence.
+/// ViewModel managing hike log form state, photo attachments, and Firestore persistence.
 @MainActor
 class HikeLogViewModel: ObservableObject {
     
@@ -39,14 +41,41 @@ class HikeLogViewModel: ObservableObject {
     @Published var dateTimeEnd: Date = Calendar.current.date(byAdding: .hour, value: 8, to: Date()) ?? Date()
     @Published var outcome: ClimbOutcome = .summited
     
+    // MARK: - Photo Attachments (Max 3)
+    @Published var selectedPhotos: [PhotosPickerItem] = []
+    @Published var selectedImages: [UIImage] = []
+    
     // MARK: - Status
     @Published var isSaving: Bool = false
     @Published var errorMessage: String? = nil
     @Published var didCompleteSuccess: Bool = false
     
+    // MARK: - Photo Loading & Deletion
+    
+    /// Loads UIImages asynchronously when the user picks items via PhotosPicker.
+    func loadPhotos() async {
+        var images: [UIImage] = []
+        for item in selectedPhotos {
+            if let data = try? await item.loadTransferable(type: Data.self),
+               let uiImage = UIImage(data: data) {
+                images.append(uiImage)
+            }
+        }
+        self.selectedImages = images
+    }
+    
+    /// Removes a photo at a specific index from both thumbnails and picker selection.
+    func removeImage(at index: Int) {
+        guard index < selectedImages.count else { return }
+        selectedImages.remove(at: index)
+        if index < selectedPhotos.count {
+            selectedPhotos.remove(at: index)
+        }
+    }
+    
     // MARK: - Submission
     
-    /// Validates the form and writes the HikeLog to `users/{userId}/hikeLogs/` in Firestore.
+    /// Validates form, uploads attached photos to Firebase Storage, and writes HikeLog to Firestore.
     func submitLog(for mountainId: String) {
         guard let user = Auth.auth().currentUser else {
             errorMessage = "You must be signed in to record climb logs."
@@ -61,32 +90,39 @@ class HikeLogViewModel: ObservableObject {
         isSaving = true
         errorMessage = nil
         
-        let hikeLog = HikeLog(
-            userId: user.uid,
-            mountainId: mountainId,
-            dateTimeStart: dateTimeStart,
-            dateTimeEnd: dateTimeEnd,
-            didSummit: outcome == .summited,
-            photoUrls: []
-        )
-        
-        let db = Firestore.firestore()
-        let ref = db.collection("users").document(user.uid).collection("hikeLogs")
-        
-        do {
-            try ref.addDocument(from: hikeLog) { [weak self] error in
-                Task { @MainActor [weak self] in
-                    self?.isSaving = false
-                    if let error {
-                        self?.errorMessage = "Failed to save: \(error.localizedDescription)"
-                    } else {
-                        self?.didCompleteSuccess = true
+        Task {
+            do {
+                var uploadedUrls: [String] = []
+                if !selectedImages.isEmpty {
+                    uploadedUrls = try await PhotoUploadService.uploadPhotos(images: selectedImages, userId: user.uid)
+                }
+                
+                let hikeLog = HikeLog(
+                    userId: user.uid,
+                    mountainId: mountainId,
+                    dateTimeStart: dateTimeStart,
+                    dateTimeEnd: dateTimeEnd,
+                    didSummit: outcome == .summited,
+                    photoUrls: uploadedUrls
+                )
+                
+                let db = Firestore.firestore()
+                let ref = db.collection("users").document(user.uid).collection("hikeLogs")
+                
+                try ref.addDocument(from: hikeLog) { [weak self] error in
+                    Task { @MainActor [weak self] in
+                        self?.isSaving = false
+                        if let error {
+                            self?.errorMessage = "Failed to save: \(error.localizedDescription)"
+                        } else {
+                            self?.didCompleteSuccess = true
+                        }
                     }
                 }
+            } catch {
+                self.isSaving = false
+                self.errorMessage = "Photo upload failed: \(error.localizedDescription)"
             }
-        } catch {
-            isSaving = false
-            errorMessage = "Encoding error: \(error.localizedDescription)"
         }
     }
 }

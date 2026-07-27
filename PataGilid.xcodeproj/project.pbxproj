@@ -21,6 +21,7 @@
 		54B387A73017471F00CAAC0B /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 54B387A63017471F00CAAC0B /* GoogleService-Info.plist */; };
 		B4F5D0D239807EA9204E90B0 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A9EED778DAA3D415FCFB03C3 /* FirebaseCore */; };
 		C8E1D947EB959238C3059EC9 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 0FF2BB4CC4A2E584FB72D350 /* FirebaseAuth */; };
+		CA1AA1076157773AD0D40E8E /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 85482906498B2315B1925EA4 /* FirebaseStorage */; };
 		D335F15744A9D8797FB4126B /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 309AA8B5F11DE3E0A500B3C9 /* FirebaseStorage */; };
 /* End PBXBuildFile section */
 
@@ -92,6 +93,7 @@
 				54B387773017253700CAAC0B /* FirebaseAuth in Frameworks */,
 				54B3877B3017253700CAAC0B /* FirebaseFirestore in Frameworks */,
 				426A14FA92BE89B5859FDB91 /* FirebaseCore in Frameworks */,
+				CA1AA1076157773AD0D40E8E /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -168,6 +170,7 @@
 				54B3877A3017253700CAAC0B /* FirebaseFirestore */,
 				54B3877C3017253700CAAC0B /* FirebaseMessaging */,
 				06CD5044F86AAD3EC9C6DA8D /* FirebaseCore */,
+				85482906498B2315B1925EA4 /* FirebaseStorage */,
 			);
 			productName = PataGilid;
 			productReference = 54778C29301721DE000E29EB /* PataGilid.app */;
@@ -782,6 +785,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 54B387733017253700CAAC0B /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseCrashlytics;
+		};
+		85482906498B2315B1925EA4 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54B387733017253700CAAC0B /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
 		};
 		8CE4E7F82AC07DC0347E67A0 /* FirebaseMessaging */ = {
 			isa = XCSwiftPackageProductDependency;

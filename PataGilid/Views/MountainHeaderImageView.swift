@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseFirestore
+import FirebaseAuth
 
 /// A community-driven image view that renders the latest summit photography uploaded by hikers in their log entries.
 /// Defaults to a clean, classic mountain icon placeholder when no community photos have been uploaded yet.
@@ -47,7 +48,7 @@ struct MountainHeaderImageView: View {
         .clipShape(RoundedRectangle(cornerRadius: isThumbnail ? 12 : 16))
         .onAppear {
             if !isThumbnail {
-                fetchLatestCommunityPhoto()
+                fetchLatestHikerPhoto()
             }
         }
     }
@@ -84,21 +85,21 @@ struct MountainHeaderImageView: View {
         )
     }
     
-    /// Query Firestore for real-time community summit photo uploads.
-    private func fetchLatestCommunityPhoto() {
+    /// Query Firestore for the hiker's latest personal summit photo upload for this peak.
+    private func fetchLatestHikerPhoto() {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            isLoadingCommunityPhoto = false
+            return
+        }
         let db = Firestore.firestore()
-        db.collection("hikeLogs")
+        db.collection("users").document(userId).collection("hikeLogs")
             .whereField("mountainId", isEqualTo: mountain.id)
-            .whereField("photoURLs", isNotEqualTo: [])
-            .order(by: "photoURLs")
-            .order(by: "climbDate", descending: true)
-            .limit(to: 1)
             .getDocuments { snapshot, error in
                 DispatchQueue.main.async {
                     self.isLoadingCommunityPhoto = false
                     if let doc = snapshot?.documents.first,
-                       let urls = doc.data()["photoURLs"] as? [String],
-                       let firstURLString = urls.first,
+                       let log = try? doc.data(as: HikeLog.self),
+                       let firstURLString = log.photoUrls.first,
                        let url = URL(string: firstURLString) {
                         self.communityPhotoURL = url
                     }

@@ -6,6 +6,16 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		54B3876F301724C000CAAC0B /* GoogleMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 54B3876E301724C000CAAC0B /* GoogleMaps */; };
+		54B38772301724D700CAAC0B /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 54B38771301724D700CAAC0B /* GoogleSignIn */; };
+		54B387753017253700CAAC0B /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 54B387743017253700CAAC0B /* FirebaseAnalytics */; };
+		54B387773017253700CAAC0B /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 54B387763017253700CAAC0B /* FirebaseAuth */; };
+		54B387793017253700CAAC0B /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 54B387783017253700CAAC0B /* FirebaseCrashlytics */; };
+		54B3877B3017253700CAAC0B /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 54B3877A3017253700CAAC0B /* FirebaseFirestore */; };
+		54B3877D3017253700CAAC0B /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 54B3877C3017253700CAAC0B /* FirebaseMessaging */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		54778C39301721E0000E29EB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +62,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				54B3876F301724C000CAAC0B /* GoogleMaps in Frameworks */,
+				54B38772301724D700CAAC0B /* GoogleSignIn in Frameworks */,
+				54B3877D3017253700CAAC0B /* FirebaseMessaging in Frameworks */,
+				54B387793017253700CAAC0B /* FirebaseCrashlytics in Frameworks */,
+				54B387753017253700CAAC0B /* FirebaseAnalytics in Frameworks */,
+				54B387773017253700CAAC0B /* FirebaseAuth in Frameworks */,
+				54B3877B3017253700CAAC0B /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +129,13 @@
 			);
 			name = PataGilid;
 			packageProductDependencies = (
+				54B3876E301724C000CAAC0B /* GoogleMaps */,
+				54B38771301724D700CAAC0B /* GoogleSignIn */,
+				54B387743017253700CAAC0B /* FirebaseAnalytics */,
+				54B387763017253700CAAC0B /* FirebaseAuth */,
+				54B387783017253700CAAC0B /* FirebaseCrashlytics */,
+				54B3877A3017253700CAAC0B /* FirebaseFirestore */,
+				54B3877C3017253700CAAC0B /* FirebaseMessaging */,
 			);
 			productName = PataGilid;
 			productReference = 54778C29301721DE000E29EB /* PataGilid.app */;
@@ -195,6 +219,11 @@
 			);
 			mainGroup = 54778C20301721DE000E29EB;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				54B3876D301724C000CAAC0B /* XCRemoteSwiftPackageReference "ios-maps-sdk" */,
+				54B38770301724D700CAAC0B /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				54B387733017253700CAAC0B /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 54778C2A301721DE000E29EB /* Products */;
 			projectDirPath = "";
@@ -578,6 +607,71 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		54B3876D301724C000CAAC0B /* XCRemoteSwiftPackageReference "ios-maps-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googlemaps/ios-maps-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 10.15.0;
+			};
+		};
+		54B38770301724D700CAAC0B /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.2.0;
+			};
+		};
+		54B387733017253700CAAC0B /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.16.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		54B3876E301724C000CAAC0B /* GoogleMaps */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54B3876D301724C000CAAC0B /* XCRemoteSwiftPackageReference "ios-maps-sdk" */;
+			productName = GoogleMaps;
+		};
+		54B38771301724D700CAAC0B /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54B38770301724D700CAAC0B /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		54B387743017253700CAAC0B /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54B387733017253700CAAC0B /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		54B387763017253700CAAC0B /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54B387733017253700CAAC0B /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		54B387783017253700CAAC0B /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54B387733017253700CAAC0B /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
+		};
+		54B3877A3017253700CAAC0B /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54B387733017253700CAAC0B /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		54B3877C3017253700CAAC0B /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54B387733017253700CAAC0B /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 54778C21301721DE000E29EB /* Project object */;
 }

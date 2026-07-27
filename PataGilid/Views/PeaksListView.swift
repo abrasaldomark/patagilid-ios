@@ -147,15 +147,7 @@ struct PeakRowView: View {
     
     var body: some View {
         HStack(spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(islandColor(for: mountain.islandGroup).opacity(0.15))
-                    .frame(width: 52, height: 52)
-                
-                Image(systemName: "mountain.2.fill")
-                    .font(.system(size: 24))
-                    .foregroundColor(islandColor(for: mountain.islandGroup))
-            }
+            MountainHeaderImageView(mountain: mountain, isThumbnail: true)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(mountain.name)

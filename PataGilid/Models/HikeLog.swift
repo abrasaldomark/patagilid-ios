@@ -21,11 +21,9 @@ struct HikeLog: Codable, Identifiable {
     /// Date and time when the climb or activity occurred.
     var dateTime: Date
     
-    /// Number of times the hiker successfully reached the summit.
-    var timesSummited: Int
-    
-    /// Number of times the hiker turned back or aborted the attempt (DNF).
-    var timesTurnedBack: Int
+    /// Whether the hiker successfully reached the summit on this attempt.
+    /// `false` implies the attempt was a turn-back (DNF).
+    var didSummit: Bool
     
     /// Array of compressed image download URLs from Firebase Cloud Storage (Maximum 3 photos).
     var photoUrls: [String]

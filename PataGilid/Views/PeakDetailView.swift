@@ -17,13 +17,7 @@ struct PeakDetailView: View {
             VStack(alignment: .leading, spacing: 24) {
                 // Header Hero Box
                 ZStack(alignment: .bottomLeading) {
-                    LinearGradient(
-                        colors: [.teal.opacity(0.85), .blue.opacity(0.7), .black.opacity(0.9)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .frame(height: 220)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    MountainHeaderImageView(mountain: mountain, isThumbnail: false)
                     
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -71,7 +65,7 @@ struct PeakDetailView: View {
                         .foregroundColor(.primary)
                     
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                        SpecCard(title: "Difficulty", value: mountain.difficultyLevel, icon: "gauge.with.dots.needle.bottom.0pct", color: .orange)
+                        SpecCard(title: "Difficulty", value: mountain.difficultyLevel, icon: "gauge.medium", color: .orange)
                         SpecCard(title: "Trail Class", value: mountain.trailClass, icon: "figure.hiking", color: .green)
                         SpecCard(title: "Latitude", value: String(format: "%.4f° N", mountain.latitude), icon: "location.north.circle.fill", color: .teal)
                         SpecCard(title: "Longitude", value: String(format: "%.4f° E", mountain.longitude), icon: "globe.asia.australia.fill", color: .blue)
@@ -115,25 +109,7 @@ struct PeakDetailView: View {
                     .shadow(color: Color.emeraldGreen.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
                 .sheet(isPresented: $showingLogModal) {
-                    VStack(spacing: 20) {
-                        Image(systemName: "photo.stack.fill")
-                            .font(.system(size: 56))
-                            .foregroundColor(.teal)
-                        Text("New Climb Log for \(mountain.name)")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        Text("Our compressed photo uploader (3 photos max, 0.6 quality) will appear here next!")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                        
-                        Button("Dismiss") {
-                            showingLogModal = false
-                        }
-                        .padding(.top, 12)
-                    }
-                    .presentationDetents([.medium])
+                    HikeLogCreationView(mountain: mountain)
                 }
             }
             .padding(.horizontal)

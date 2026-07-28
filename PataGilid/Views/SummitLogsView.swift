@@ -156,6 +156,36 @@ struct SummitLogRow: View {
                         .lineLimit(1)
                 }
                 
+                // Optional Custom Trail / Traverse Route Badge
+                if let trail = log.trailName, !trail.isEmpty {
+                    HStack(spacing: 4) {
+                        Image(systemName: (log.isTraverse == true) ? "point.bottomleft.forward.to.point.topright.scurvepath" : "point.forward.to.point.capsulepath")
+                            .font(.caption2)
+                        
+                        if log.isTraverse == true, let exit = log.exitTrailName, !exit.isEmpty {
+                            Text("\(trail) ➔ \(exit) (Traverse)")
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                                .lineLimit(1)
+                        } else if log.isTraverse == true {
+                            Text("\(trail) (Traverse)")
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                                .lineLimit(1)
+                        } else {
+                            Text("\(trail) (Back Trail)")
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                                .lineLimit(1)
+                        }
+                    }
+                    .foregroundColor(log.isTraverse == true ? .purple : .blue)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(log.isTraverse == true ? Color.purple.opacity(0.1) : Color.blue.opacity(0.1))
+                    .clipShape(Capsule())
+                }
+                
                 outcomeBadge
             }
             

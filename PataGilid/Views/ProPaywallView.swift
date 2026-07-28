@@ -67,14 +67,7 @@ struct ProPaywallView: View {
                             icon: "cloud.fill",
                             color: .teal,
                             title: "Cloud Backup & Sync",
-                            subtitle: "Safely sync your climb records across all your iOS devices without losing history."
-                        )
-                        
-                        featureRow(
-                            icon: "figure.hiking",
-                            color: .emeraldGreen,
-                            title: "Support Philippine Trails",
-                            subtitle: "Help fund ongoing curation of Philippine peak data, elevations, and GPS trail info."
+                            subtitle: "Safely sync your climb records across all your iOS and Android devices without losing history."
                         )
                     }
                     .padding(20)

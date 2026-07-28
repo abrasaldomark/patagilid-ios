@@ -31,15 +31,37 @@ struct HikeLog: Codable, Identifiable {
     /// Array of compressed image download URLs from Firebase Cloud Storage (Maximum 3 photos).
     var photoUrls: [String]
     
+    /// Optional custom trail or traverse route taken (e.g., "Kule Trail"). For a traverse, this is the Entry Trail.
+    var trailName: String?
+    
+    /// Whether the attempt was a traverse route (entry and exit points on different trails).
+    var isTraverse: Bool?
+    
+    /// Optional exit trail name when traversing (e.g., "Salacafe Trail").
+    var exitTrailName: String?
+    
+    /// Experienced climb difficulty rating for this log attempt (e.g., "7/9 (Major)").
+    var trailDifficulty: String?
+    
+    /// Technical terrain classification encountered (e.g., "Class 3").
+    var trailClass: String?
+    
     // MARK: - Explicit Memberwise Init
     
     init(userId: String, mountainId: String, dateTimeStart: Date, dateTimeEnd: Date,
-         didSummit: Bool, photoUrls: [String]) {
+         didSummit: Bool, photoUrls: [String],
+         trailName: String? = nil, isTraverse: Bool? = nil, exitTrailName: String? = nil,
+         trailDifficulty: String? = nil, trailClass: String? = nil) {
         self.userId = userId
         self.mountainId = mountainId
         self.dateTimeStart = dateTimeStart
         self.dateTimeEnd = dateTimeEnd
         self.didSummit = didSummit
         self.photoUrls = photoUrls
+        self.trailName = trailName
+        self.isTraverse = isTraverse
+        self.exitTrailName = exitTrailName
+        self.trailDifficulty = trailDifficulty
+        self.trailClass = trailClass
     }
 }

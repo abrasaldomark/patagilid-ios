@@ -40,6 +40,11 @@ class HikeLogViewModel: ObservableObject {
     @Published var dateTimeStart: Date = Date()
     @Published var dateTimeEnd: Date = Calendar.current.date(byAdding: .hour, value: 8, to: Date()) ?? Date()
     @Published var outcome: ClimbOutcome = .summited
+    @Published var trailName: String = ""
+    @Published var isTraverse: Bool = false
+    @Published var exitTrailName: String = ""
+    @Published var trailDifficulty: String = ""
+    @Published var trailClass: String = ""
     
     // MARK: - Photo Attachments (Max 3)
     @Published var selectedPhotos: [PhotosPickerItem] = []
@@ -97,13 +102,23 @@ class HikeLogViewModel: ObservableObject {
                     uploadedUrls = try await PhotoUploadService.uploadPhotos(images: selectedImages, userId: user.uid)
                 }
                 
+                let cleanTrailName = trailName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : trailName.trimmingCharacters(in: .whitespacesAndNewlines)
+                let cleanExitTrail = (isTraverse && !exitTrailName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) ? exitTrailName.trimmingCharacters(in: .whitespacesAndNewlines) : nil
+                let cleanDifficulty = trailDifficulty.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : trailDifficulty.trimmingCharacters(in: .whitespacesAndNewlines)
+                let cleanTrailClass = trailClass.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : trailClass.trimmingCharacters(in: .whitespacesAndNewlines)
+
                 let hikeLog = HikeLog(
                     userId: user.uid,
                     mountainId: mountainId,
                     dateTimeStart: dateTimeStart,
                     dateTimeEnd: dateTimeEnd,
                     didSummit: outcome == .summited,
-                    photoUrls: uploadedUrls
+                    photoUrls: uploadedUrls,
+                    trailName: cleanTrailName,
+                    isTraverse: isTraverse,
+                    exitTrailName: cleanExitTrail,
+                    trailDifficulty: cleanDifficulty,
+                    trailClass: cleanTrailClass
                 )
                 
                 let db = Firestore.firestore()

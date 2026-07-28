@@ -49,7 +49,7 @@ struct OnboardingView: View {
             iconTint: .red,
             badgeText: "PRO FEATURE 👑",
             title: "Preserve Climb Memories",
-            subtitle: "Unlock PataGilid Pro to attach up to 3 high-definition climb photos per log and securely back up your adventures across all iOS devices."
+            subtitle: "Unlock PataGilid Pro to attach up to 3 high-definition climb photos per log and securely back up your adventures across all your iOS and Android devices."
         )
     ]
     

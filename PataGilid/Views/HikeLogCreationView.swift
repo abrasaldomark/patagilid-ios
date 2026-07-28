@@ -23,6 +23,7 @@ struct HikeLogCreationView: View {
                 VStack(spacing: 24) {
                     summitBanner
                     activityForm
+                    trailDetailsForm
                     
                     if isProUser {
                         photosForm
@@ -63,6 +64,14 @@ struct HikeLogCreationView: View {
             }
             .onChange(of: viewModel.didCompleteSuccess) { _, success in
                 if success { dismiss() }
+            }
+            .onAppear {
+                if viewModel.trailDifficulty.isEmpty {
+                    viewModel.trailDifficulty = mountain.difficultyLevel
+                }
+                if viewModel.trailClass.isEmpty {
+                    viewModel.trailClass = mountain.trailClass
+                }
             }
             .sheet(isPresented: $showProPaywall) {
                 ProPaywallView()
@@ -161,6 +170,146 @@ struct HikeLogCreationView: View {
         }
     }
     
+    private var trailDetailsForm: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Trail & Traverse Details")
+                .font(.headline)
+                .padding(.horizontal)
+            
+            VStack(spacing: 0) {
+                // Route Style Selector (Back Trail vs Traverse)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Route Style")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    HStack(spacing: 12) {
+                        routeStyleCard(title: "Back Trail", subtitle: "Same Start & Exit", icon: "point.forward.to.point.capsulepath", isTraverse: false, accentColor: .blue)
+                        routeStyleCard(title: "Traverse", subtitle: "Different Exit Trail", icon: "point.bottomleft.forward.to.point.topright.scurvepath", isTraverse: true, accentColor: .purple)
+                    }
+                }
+                .padding()
+                
+                Divider().padding(.leading)
+                
+                // Trail / Entry Route Name
+                HStack(spacing: 12) {
+                    Image(systemName: viewModel.isTraverse ? "arrow.down.right.circle.fill" : "point.forward.to.point.capsulepath")
+                        .foregroundColor(.emeraldGreen)
+                        .frame(width: 24)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(viewModel.isTraverse ? "Start Trail" : "Back Trail Name (Start & Exit)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        TextField(viewModel.isTraverse ? "e.g. Kule Trail" : "e.g. Salacafe Trail, Ambangeg Trail", text: $viewModel.trailName)
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+                    }
+                }
+                .padding()
+                
+                // Exit Trail (Only visible if Traverse is ON)
+                if viewModel.isTraverse {
+                    Divider().padding(.leading)
+                    
+                    HStack(spacing: 12) {
+                        Image(systemName: "arrow.up.right.circle.fill")
+                            .foregroundColor(.red)
+                            .frame(width: 24)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Exit Trail")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            TextField("e.g. Salacafe Trail", text: $viewModel.exitTrailName)
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+                        }
+                    }
+                    .padding()
+                }
+                
+                Divider().padding(.leading)
+                
+                // Trail Difficulty
+                HStack(spacing: 12) {
+                    Image(systemName: "gauge.with.dots.needle.bottom.100percent")
+                        .foregroundColor(.orange)
+                        .frame(width: 24)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Experienced Difficulty")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        TextField("e.g. 3/9 (Minor), 7/9 (Major)", text: $viewModel.trailDifficulty)
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+                    }
+                }
+                .padding()
+                
+                Divider().padding(.leading)
+                
+                // Trail Class
+                HStack(spacing: 12) {
+                    Image(systemName: "figure.climbing")
+                        .foregroundColor(.teal)
+                        .frame(width: 24)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Technical Trail Class")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        TextField("e.g. Class 1-2, Class 3", text: $viewModel.trailClass)
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+                    }
+                }
+                .padding()
+            }
+            .background(Color.secondary.opacity(0.06))
+            .cornerRadius(14)
+            .padding(.horizontal)
+        }
+    }
+    
+    @ViewBuilder
+    private func routeStyleCard(title: String, subtitle: String, icon: String, isTraverse: Bool, accentColor: Color) -> some View {
+        let isSelected = (viewModel.isTraverse == isTraverse)
+        
+        Button {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                viewModel.isTraverse = isTraverse
+            }
+        } label: {
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(isSelected ? accentColor : .gray)
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(isSelected ? accentColor : .gray)
+                Text(subtitle)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .padding(.horizontal, 4)
+            .background(isSelected ? accentColor.opacity(0.12) : Color.secondary.opacity(0.08))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(isSelected ? accentColor : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+    
     @ViewBuilder
     private func outcomeCard(_ option: ClimbOutcome) -> some View {
         let isSelected = viewModel.outcome == option
@@ -177,10 +326,15 @@ struct HikeLogCreationView: View {
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundColor(isSelected ? accentColor : .gray)
+                Text(option == .summited ? "Reached Top" : "Did Not Finish")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
+                    .lineLimit(1)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.vertical, 14)
+            .padding(.horizontal, 4)
             .background(isSelected ? accentColor.opacity(0.12) : Color.secondary.opacity(0.08))
             .cornerRadius(12)
             .overlay(

@@ -8,7 +8,7 @@
 import SwiftUI
 import PhotosUI
 
-/// Modal sheet for recording a climb attempt — date, summit count, DNF count, and up to 3 photos.
+/// Modal sheet for recording a climb attempt — date, summit count, DNF count, and up to 50 photos.
 struct HikeLogCreationView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     let mountain: Mountain
@@ -174,7 +174,7 @@ struct HikeLogCreationView: View {
                     
                     HStack(spacing: 12) {
                         outcomeCard(.summited)
-                        outcomeCard(.turnedBack)
+                        outcomeCard(.backedOut)
                     }
                 }
                 .padding()

@@ -170,7 +170,7 @@ struct SummitLogsView: View {
                     // Active Outcome Badge indicator
                     if viewModel.selectedOutcome != .all {
                         HStack(spacing: 4) {
-                            Text(viewModel.selectedOutcome == .summited ? "Summited 🏆" : "Turned Back 🚫")
+                            Text(viewModel.selectedOutcome == .summited ? "Summited 🏆" : "Backed Out 🚫")
                                 .lineLimit(1)
                             Image(systemName: "xmark.circle.fill")
                         }
@@ -332,41 +332,6 @@ struct SummitLogRow: View {
                 }
                 
                 outcomeBadge
-                
-                if !log.cleanPhotoUrls.isEmpty {
-                    HStack(spacing: 8) {
-                        ForEach(log.cleanPhotoUrls, id: \.self) { urlString in
-                            CachedAsyncImage(url: URL(string: urlString)) { phase in
-                                switch phase {
-                                case .empty:
-                                    ProgressView()
-                                        .frame(width: 58, height: 58)
-                                        .background(Color.secondary.opacity(0.1))
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 58, height: 58)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-                                        )
-                                case .failure:
-                                    Image(systemName: "photo.fill")
-                                        .foregroundColor(.secondary)
-                                        .frame(width: 58, height: 58)
-                                        .background(Color.secondary.opacity(0.1))
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                @unknown default:
-                                    EmptyView()
-                                }
-                            }
-                        }
-                    }
-                    .padding(.top, 4)
-                }
             }
             
             Spacer(minLength: 0)
@@ -386,7 +351,7 @@ struct SummitLogRow: View {
     }
     
     private var outcomeBadge: some View {
-        Text(log.didSummit ? "Summited" : "Turned Back")
+        Text(log.didSummit ? "Summited" : "Backed Out")
             .font(.caption2)
             .fontWeight(.black)
             .tracking(0.5)

@@ -20,7 +20,7 @@ enum LogSortOrder: String, CaseIterable {
 enum LogOutcomeFilter: String, CaseIterable {
     case all = "All Outcomes"
     case summited = "Summited Only"
-    case turnedBack = "Turned Back"
+    case backedOut = "Backed Out"
 }
 
 /// ViewModel providing a real-time feed of the signed-in hiker's personal summit logs
@@ -121,7 +121,7 @@ class SummitLogsViewModel: ObservableObject {
             break
         case .summited:
             result = result.filter { $0.didSummit }
-        case .turnedBack:
+        case .backedOut:
             result = result.filter { !$0.didSummit }
         }
         

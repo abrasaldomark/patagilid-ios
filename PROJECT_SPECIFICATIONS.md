@@ -36,9 +36,9 @@ Stores an individual hiker's personal history and statistics for a targeted moun
 * **Activity & Counters:**
   * `dateTime`: Date and time when the hike occurred or was logged.
   * `timesSummited`: Integer counter tracking successful summit completions.
-  * `timesTurnedBack`: Integer counter tracking aborted ascents or turn backs due to weather/health/time constraints.
+  * `timesBackedOut`: Integer counter tracking aborted ascents or backing out due to weather/health/time constraints.
 * **Media Memories:**
-  * `photoUrls`: Array of string URLs pointing to compressed JPEG images stored in Firebase Cloud Storage.
+  * `photoUrls`: Array of string URLs pointing to untouched high-resolution original climb photos stored in Google Drive.
 
 ---
 

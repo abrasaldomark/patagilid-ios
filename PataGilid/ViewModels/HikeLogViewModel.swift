@@ -16,20 +16,20 @@ import UniformTypeIdentifiers
 
 /// The result of a single climb attempt — mutually exclusive.
 enum ClimbOutcome: String, CaseIterable {
-    case summited    = "Summited"
-    case turnedBack  = "Turned Back (DNF)"
+    case summited  = "Summited"
+    case backedOut = "Backed Out (DNF)"
     
     var icon: String {
         switch self {
-        case .summited:   return "mountain.2.fill"
-        case .turnedBack: return "arrow.uturn.backward.circle.fill"
+        case .summited:  return "mountain.2.fill"
+        case .backedOut: return "arrow.uturn.backward.circle.fill"
         }
     }
     
     var color: String {
         switch self {
-        case .summited:   return "orange"
-        case .turnedBack: return "red"
+        case .summited:  return "orange"
+        case .backedOut: return "red"
         }
     }
 }
@@ -206,7 +206,7 @@ class HikeLogViewModel: ObservableObject {
     func setupForEditing(log: HikeLog) {
         self.dateTimeStart = log.dateTimeStart
         self.dateTimeEnd = log.dateTimeEnd
-        self.outcome = log.didSummit ? .summited : .turnedBack
+        self.outcome = log.didSummit ? .summited : .backedOut
         self.trailName = log.trailName ?? ""
         self.isTraverse = log.isTraverse == true
         self.exitTrailName = log.exitTrailName ?? ""

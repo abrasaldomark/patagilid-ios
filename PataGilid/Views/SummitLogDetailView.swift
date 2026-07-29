@@ -82,7 +82,7 @@ struct SummitLogDetailView: View {
                     .foregroundColor(log.didSummit ? .emeraldGreen : .red)
             }
             
-            Text(log.didSummit ? "Summited" : "Turned Back")
+            Text(log.didSummit ? "Summited" : "Backed Out")
                 .font(.title2)
                 .fontWeight(.black)
                 .foregroundColor(log.didSummit ? .emeraldGreen : .red)
@@ -168,7 +168,7 @@ struct SummitLogDetailView: View {
                     icon: log.didSummit ? "checkmark.circle.fill" : "xmark.circle.fill",
                     iconColor: log.didSummit ? .emeraldGreen : .red,
                     label: "Outcome",
-                    value: log.didSummit ? "Successful Summit" : "Turned Back"
+                    value: log.didSummit ? "Successful Summit" : "Backed Out"
                 )
             }
         }

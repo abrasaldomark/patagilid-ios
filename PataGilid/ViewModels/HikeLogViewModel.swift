@@ -8,9 +8,11 @@
 import SwiftUI
 import UIKit
 import PhotosUI
+import Photos
 import Combine
 import FirebaseAuth
 import FirebaseFirestore
+import UniformTypeIdentifiers
 
 /// The result of a single climb attempt — mutually exclusive.
 enum ClimbOutcome: String, CaseIterable {
@@ -48,11 +50,15 @@ class HikeLogViewModel: ObservableObject {
     
     // MARK: - Photo Attachments (Max 50)
     @Published var selectedPhotos: [PhotosPickerItem] = []
-    @Published var selectedImages: [UIImage] = []
+    @Published var selectedPhotoAssets: [SelectedPhotoAsset] = []
     @Published var existingPhotoUrls: [String] = []
     
+    var selectedImages: [UIImage] {
+        selectedPhotoAssets.map { $0.uiImage }
+    }
+    
     var totalPhotosCount: Int {
-        existingPhotoUrls.count + selectedImages.count
+        existingPhotoUrls.count + selectedPhotoAssets.count
     }
     
     // MARK: - Status
@@ -62,22 +68,129 @@ class HikeLogViewModel: ObservableObject {
     
     // MARK: - Photo Loading & Deletion
     
-    /// Loads UIImages asynchronously when the user picks items via PhotosPicker.
+    /// Loads untouched camera bitstreams asynchronously when the user picks items via PhotosPicker.
     func loadPhotos() async {
-        var images: [UIImage] = []
+        var assets: [SelectedPhotoAsset] = []
         for item in selectedPhotos {
-            if let data = try? await item.loadTransferable(type: Data.self),
-               let uiImage = UIImage(data: data) {
-                images.append(uiImage)
+            // 1. DIRECT PHOTOKIT BYPASS: Fetch physical disk asset directly via PHAssetResourceManager!
+            // This defeats iOS's default "Most Compatible" transfer policy which transcodes HEIC to JPEG during Transferable import.
+            if let untouchedPhotoKitAsset = await fetchUntouchedPhotoKitAsset(from: item) {
+                assets.append(untouchedPhotoKitAsset)
+            }
+            // 2. Try loading raw untouched file representation via Transferable if PhotoKit identifier is unavailable
+            else if let untouched = try? await item.loadTransferable(type: UntouchedPhotoFile.self),
+               let uiImage = UIImage(data: untouched.data) {
+                assets.append(SelectedPhotoAsset(uiImage: uiImage, originalData: untouched.data, fileExtension: untouched.fileExtension, mimeType: untouched.mimeType))
+            } 
+            // 3. Fallback to standard Data loading
+            else if let data = try? await item.loadTransferable(type: Data.self),
+                    let uiImage = UIImage(data: data) {
+                let format = detectFileFormat(from: data, item: item)
+                assets.append(SelectedPhotoAsset(uiImage: uiImage, originalData: data, fileExtension: format.ext, mimeType: format.mime))
             }
         }
-        self.selectedImages = images
+        self.selectedPhotoAssets = assets
+        
+        // When updating / changing photos during log editing, selecting new photos replaces the old ones!
+        if !assets.isEmpty && !existingPhotoUrls.isEmpty {
+            self.existingPhotoUrls.removeAll()
+        }
+    }
+    
+    /// Directly pulls the literal raw file bitstream from device storage via PHAssetResourceManager, completely bypassing iOS automatic JPEG transcoding.
+    private func fetchUntouchedPhotoKitAsset(from item: PhotosPickerItem) async -> SelectedPhotoAsset? {
+        guard let localId = item.itemIdentifier else { return nil }
+        
+        // Ensure photo library authorization is granted
+        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        if status == .notDetermined {
+            _ = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+        }
+        
+        let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [localId], options: nil)
+        guard let asset = fetchResult.firstObject else { return nil }
+        
+        let resources = PHAssetResource.assetResources(for: asset)
+        // Prefer the full size photo or main photo resource
+        guard let resource = resources.first(where: { $0.type == .photo || $0.type == .fullSizePhoto }) ?? resources.first else { return nil }
+        
+        let originalName = resource.originalFilename // e.g., "IMG_0745.HEIC"
+        let ext = (originalName as NSString).pathExtension.lowercased()
+        
+        var mime = "image/jpeg"
+        var actualExt = ext.isEmpty ? "heic" : ext
+        if actualExt == "heic" || actualExt == "heif" {
+            mime = "image/heif"
+        } else if actualExt == "png" {
+            mime = "image/png"
+        } else if actualExt == "jpg" || actualExt == "jpeg" {
+            mime = "image/jpeg"
+        }
+        
+        let options = PHAssetResourceRequestOptions()
+        options.isNetworkAccessAllowed = true // Easily download original from iCloud if stored there
+        
+        let rawData: Data? = await withCheckedContinuation { continuation in
+            var buffer = Data()
+            PHAssetResourceManager.default().requestData(for: resource, options: options, dataReceivedHandler: { data in
+                buffer.append(data)
+            }, completionHandler: { error in
+                if let error = error {
+                    print("⚠️ [HikeLogViewModel] Failed to stream PHAssetResource: \(error.localizedDescription)")
+                    continuation.resume(returning: nil)
+                } else {
+                    continuation.resume(returning: buffer)
+                }
+            })
+        }
+        
+        guard let data = rawData, !data.isEmpty, let uiImage = UIImage(data: data) else { return nil }
+        print("💎 [HikeLogViewModel] Successfully captured untouched raw disk resource: \(originalName) (\(data.count / 1024) KB) as .\(actualExt) with ZERO transcoding!")
+        return SelectedPhotoAsset(uiImage: uiImage, originalData: data, fileExtension: actualExt, mimeType: mime)
+    }
+    
+    /// Detects original file format directly from binary file headers (magic bytes) to prevent converting to JPEG.
+    private func detectFileFormat(from data: Data, item: PhotosPickerItem) -> (ext: String, mime: String) {
+        // 1. Inspect the raw physical binary file header ("magic bytes") directly from the bitstream!
+        if data.count >= 12 {
+            let bytes = [UInt8](data.prefix(12))
+            // JPEG signature (FF D8 FF)
+            if bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF {
+                return ("jpg", "image/jpeg")
+            }
+            // PNG signature (89 50 4E 47)
+            if bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47 {
+                return ("png", "image/png")
+            }
+            // HEIF / HEIC container (ISOBMFF box format with 'ftyp' header)
+            if data.count >= 32 {
+                let headerData = data.prefix(32)
+                if let str = String(data: headerData, encoding: .ascii) ?? String(data: headerData, encoding: .utf8), str.lowercased().contains("ftyp") {
+                    return ("heic", "image/heif")
+                }
+            }
+        }
+        
+        // 2. Fallback to iOS UniformTypeIdentifiers metadata from PhotosPicker
+        for contentType in item.supportedContentTypes {
+            let id = contentType.identifier.lowercased()
+            if contentType.conforms(to: .heic) || contentType.conforms(to: .heif) || id.contains("heic") || id.contains("heif") {
+                return ("heic", "image/heif")
+            } else if contentType.conforms(to: .png) || id.contains("png") {
+                return ("png", "image/png")
+            } else if contentType.conforms(to: .jpeg) || id.contains("jpeg") || id.contains("jpg") {
+                return ("jpg", "image/jpeg")
+            }
+        }
+        
+        // Default to HEIC for modern iPhone photo libraries
+        return ("heic", "image/heif")
     }
     
     /// Removes a photo at a specific index from both thumbnails and picker selection.
     func removeImage(at index: Int) {
-        guard index < selectedImages.count else { return }
-        selectedImages.remove(at: index)
+        guard index < selectedPhotoAssets.count else { return }
+        selectedPhotoAssets.remove(at: index)
         if index < selectedPhotos.count {
             selectedPhotos.remove(at: index)
         }
@@ -125,11 +238,20 @@ class HikeLogViewModel: ObservableObject {
                 await PeaksViewModel.shared?.commitStagedMountainIfNeeded(mountain)
                 
                 var newlyUploadedUrls: [String] = []
-                if !selectedImages.isEmpty {
-                    newlyUploadedUrls = try await PhotoUploadService.uploadPhotos(images: selectedImages, userId: user.uid)
+                if !selectedPhotoAssets.isEmpty {
+                    newlyUploadedUrls = try await PhotoUploadService.uploadPhotos(assets: selectedPhotoAssets, userId: user.uid)
                 }
                 
                 let combinedPhotoUrls = existingPhotoUrls + newlyUploadedUrls
+                
+                // Clean up removed Google Drive photos when editing an existing climb log
+                if let originalLog = editingLog, !originalLog.photoUrls.isEmpty {
+                    let removedUrls = originalLog.photoUrls.filter { !existingPhotoUrls.contains($0) }
+                    if !removedUrls.isEmpty {
+                        print("🗑️ Cleaning up \(removedUrls.count) removed climb photos from Google Drive...")
+                        await GoogleDriveService.shared.deletePhotos(atUrls: removedUrls)
+                    }
+                }
                 
                 let cleanTrailName = trailName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : trailName.trimmingCharacters(in: .whitespacesAndNewlines)
                 let cleanExitTrail = (isTraverse && !exitTrailName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) ? exitTrailName.trimmingCharacters(in: .whitespacesAndNewlines) : nil
@@ -186,10 +308,16 @@ class HikeLogViewModel: ObservableObject {
         }
     }
     
-    /// Permanently removes a recorded climb log from Firestore.
+    /// Permanently removes a recorded climb log from Firestore and cleans up its attached Google Drive photos.
     func deleteLog(_ log: HikeLog, completion: @escaping () -> Void = {}) {
         guard let user = Auth.auth().currentUser, let docId = log.id else { return }
         isSaving = true
+        if !log.photoUrls.isEmpty {
+            Task {
+                print("🗑️ Removing \(log.photoUrls.count) attached photos from Google Drive for deleted log...")
+                await GoogleDriveService.shared.deletePhotos(atUrls: log.photoUrls)
+            }
+        }
         Firestore.firestore().collection("users").document(user.uid).collection("hikeLogs").document(docId).delete { [weak self] error in
             Task { @MainActor [weak self] in
                 self?.isSaving = false

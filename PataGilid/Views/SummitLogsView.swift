@@ -29,17 +29,71 @@ struct SummitLogsView: View {
                 }
             }
             .navigationTitle("My Summit Logs")
+            .searchable(text: $viewModel.searchText, prompt: "Search Mountain, Region, or Trail")
             .toolbar {
                 if !viewModel.logs.isEmpty {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "checkmark.seal.fill")
-                                .foregroundColor(.emeraldGreen)
-                                .font(.caption)
-                            Text("\(viewModel.logs.filter { $0.didSummit }.count) summited")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.emeraldGreen)
+                        HStack(spacing: 12) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .foregroundColor(.emeraldGreen)
+                                    .font(.caption)
+                                Text("\(viewModel.logs.filter { $0.didSummit }.count) summited")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.emeraldGreen)
+                            }
+                            
+                            Menu {
+                                Section(header: Text("Sort Order")) {
+                                    ForEach(LogSortOrder.allCases, id: \.self) { order in
+                                        Button(action: { viewModel.sortOrder = order }) {
+                                            HStack {
+                                                Text(order.rawValue)
+                                                if viewModel.sortOrder == order {
+                                                    Image(systemName: "checkmark")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                Section(header: Text("Filter by Outcome")) {
+                                    ForEach(LogOutcomeFilter.allCases, id: \.self) { outcome in
+                                        Button(action: { viewModel.selectedOutcome = outcome }) {
+                                            HStack {
+                                                Text(outcome.rawValue)
+                                                if viewModel.selectedOutcome == outcome {
+                                                    Image(systemName: "checkmark")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                Section(header: Text("Filter by Region")) {
+                                    Button(action: { viewModel.selectRegion(nil) }) {
+                                        Text("All Regions")
+                                    }
+                                    
+                                    ForEach(viewModel.availableRegions(using: peaksViewModel.allPeaks), id: \.self) { region in
+                                        Button(action: {
+                                            viewModel.selectRegion(region)
+                                        }) {
+                                            HStack {
+                                                Text(region)
+                                                if viewModel.selectedRegion == region {
+                                                    Image(systemName: "checkmark")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.emeraldGreen)
+                            }
                         }
                     }
                 }
@@ -99,21 +153,111 @@ struct SummitLogsView: View {
     // MARK: - Log List
     
     private var logList: some View {
-        List {
-            ForEach(viewModel.logs) { log in
-                let mountain = peaksViewModel.allPeaks.first(where: { $0.id == log.mountainId }) ?? viewModel.mountain(for: log.mountainId)
-                NavigationLink(destination: SummitLogDetailView(log: log, mountain: mountain)) {
-                    SummitLogRow(log: log, mountain: mountain)
+        VStack(spacing: 0) {
+            // Island Group Filter Bar
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    FilterPill(title: "All (\(viewModel.logs.count))", isSelected: viewModel.selectedIslandGroup == nil && viewModel.selectedRegion == nil && viewModel.selectedOutcome == .all) {
+                        viewModel.resetFilters()
+                    }
+                    
+                    ForEach(IslandGroup.allCases) { group in
+                        FilterPill(title: group.rawValue, isSelected: viewModel.selectedIslandGroup == group) {
+                            viewModel.selectIslandGroup(group)
+                        }
+                    }
+                    
+                    // Active Outcome Badge indicator
+                    if viewModel.selectedOutcome != .all {
+                        HStack(spacing: 4) {
+                            Text(viewModel.selectedOutcome == .summited ? "Summited 🏆" : "Turned Back 🚫")
+                                .lineLimit(1)
+                            Image(systemName: "xmark.circle.fill")
+                        }
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.emeraldGreen.opacity(0.2))
+                        .foregroundColor(.emeraldGreen)
+                        .clipShape(Capsule())
+                        .onTapGesture {
+                            viewModel.selectedOutcome = .all
+                        }
+                    }
+                    
+                    // Active Region Badge indicator
+                    if let activeRegion = viewModel.selectedRegion {
+                        HStack(spacing: 4) {
+                            Text(activeRegion)
+                                .lineLimit(1)
+                            Image(systemName: "xmark.circle.fill")
+                        }
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.orange.opacity(0.2))
+                        .foregroundColor(.orange)
+                        .clipShape(Capsule())
+                        .onTapGesture {
+                            viewModel.selectRegion(nil)
+                        }
+                    }
                 }
-                .listRowBackground(Color(uiColor: .secondarySystemGroupedBackground))
-                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                .padding(.horizontal)
+                .padding(.vertical, 10)
             }
-            .onDelete { offsets in
-                offsets.map { viewModel.logs[$0] }.forEach { viewModel.delete($0) }
+            .background(Color.secondary.opacity(0.06))
+            
+            let filteredLogs = viewModel.filteredAndSortedLogs(using: peaksViewModel.allPeaks)
+            
+            // Log Count Banner
+            HStack {
+                Text("Showing \(filteredLogs.count) of \(viewModel.logs.count) Climbs")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 6)
+            
+            if filteredLogs.isEmpty {
+                VStack(spacing: 16) {
+                    Spacer()
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.system(size: 52))
+                        .foregroundColor(.secondary.opacity(0.4))
+                    Text(viewModel.searchText.isEmpty ? "No climbs match active filters" : "No climbs matched '\(viewModel.searchText)'")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                    Button("Reset Filters") {
+                        viewModel.resetFilters()
+                    }
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.emeraldGreen)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    ForEach(filteredLogs) { log in
+                        let mountain = peaksViewModel.allPeaks.first(where: { $0.id == log.mountainId }) ?? viewModel.mountain(for: log.mountainId)
+                        NavigationLink(destination: SummitLogDetailView(log: log, mountain: mountain)) {
+                            SummitLogRow(log: log, mountain: mountain)
+                        }
+                        .listRowBackground(Color(uiColor: .secondarySystemGroupedBackground))
+                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                    }
+                    .onDelete { offsets in
+                        offsets.map { filteredLogs[$0] }.forEach { viewModel.delete($0) }
+                    }
+                }
+                .listStyle(.insetGrouped)
+                .refreshable { viewModel.subscribe() }
             }
         }
-        .listStyle(.insetGrouped)
-        .refreshable { viewModel.subscribe() }
     }
 }
 

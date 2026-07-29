@@ -10,6 +10,19 @@ import Combine
 import FirebaseAuth
 import FirebaseFirestore
 
+enum LogSortOrder: String, CaseIterable {
+    case mostRecent = "Most Recent"
+    case oldestFirst = "Oldest First"
+    case highestElevation = "Highest Peak"
+    case alphabetical = "Mountain Name (A-Z)"
+}
+
+enum LogOutcomeFilter: String, CaseIterable {
+    case all = "All Outcomes"
+    case summited = "Summited Only"
+    case turnedBack = "Turned Back"
+}
+
 /// ViewModel providing a real-time feed of the signed-in hiker's personal summit logs
 /// from `users/{userId}/hikeLogs`, ordered by most recent attempt first.
 @MainActor
@@ -17,6 +30,13 @@ class SummitLogsViewModel: ObservableObject {
     @Published var logs: [HikeLog] = []
     @Published var isLoading: Bool = true
     @Published var errorMessage: String? = nil
+    
+    // MARK: - Filtering & Sorting State
+    @Published var searchText: String = ""
+    @Published var selectedIslandGroup: IslandGroup? = nil
+    @Published var selectedRegion: String? = nil
+    @Published var selectedOutcome: LogOutcomeFilter = .all
+    @Published var sortOrder: LogSortOrder = .mostRecent
     
     /// O(1) mountain lookup map built from the bundled JSON catalog.
     private(set) var mountainMap: [String: Mountain] = [:]
@@ -40,6 +60,104 @@ class SummitLogsViewModel: ObservableObject {
     private func buildMountainMap() {
         let all = MountainDataSeeder.shared.officialMountains
         mountainMap = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
+    }
+    
+    // MARK: - Filtering & Sorting Logic
+    
+    func resetFilters() {
+        selectedIslandGroup = nil
+        selectedRegion = nil
+        selectedOutcome = .all
+        searchText = ""
+        sortOrder = .mostRecent
+    }
+    
+    func selectIslandGroup(_ group: IslandGroup) {
+        if selectedIslandGroup == group {
+            selectedIslandGroup = nil
+        } else {
+            selectedIslandGroup = group
+            selectedRegion = nil
+        }
+    }
+    
+    func selectRegion(_ region: String?) {
+        selectedRegion = region
+    }
+    
+    func availableRegions(using allPeaks: [Mountain]) -> [String] {
+        let candidateLogs = selectedIslandGroup != nil ? logs.filter { log in
+            let m = allPeaks.first(where: { $0.id == log.mountainId }) ?? mountainMap[log.mountainId]
+            return m?.islandGroup == selectedIslandGroup
+        } : logs
+        let regions = candidateLogs.compactMap { log in
+            (allPeaks.first(where: { $0.id == log.mountainId }) ?? mountainMap[log.mountainId])?.region
+        }.removingDuplicates()
+        return regions.sorted { $0.compare($1, options: [.numeric, .caseInsensitive]) == .orderedAscending }
+    }
+    
+    func filteredAndSortedLogs(using allPeaks: [Mountain]) -> [HikeLog] {
+        var result = logs
+        
+        // Island Group filter
+        if let group = selectedIslandGroup {
+            result = result.filter { log in
+                let m = allPeaks.first(where: { $0.id == log.mountainId }) ?? mountainMap[log.mountainId]
+                return m?.islandGroup == group
+            }
+        }
+        
+        // Region filter
+        if let region = selectedRegion {
+            result = result.filter { log in
+                let m = allPeaks.first(where: { $0.id == log.mountainId }) ?? mountainMap[log.mountainId]
+                return m?.region == region
+            }
+        }
+        
+        // Outcome filter
+        switch selectedOutcome {
+        case .all:
+            break
+        case .summited:
+            result = result.filter { $0.didSummit }
+        case .turnedBack:
+            result = result.filter { !$0.didSummit }
+        }
+        
+        // Search text filter
+        if !searchText.isEmpty {
+            result = result.filter { log in
+                let m = allPeaks.first(where: { $0.id == log.mountainId }) ?? mountainMap[log.mountainId]
+                let nameMatch = m?.name.localizedCaseInsensitiveContains(searchText) == true
+                let regionMatch = m?.region.localizedCaseInsensitiveContains(searchText) == true
+                let trailMatch = log.trailName?.localizedCaseInsensitiveContains(searchText) == true
+                let exitMatch = log.exitTrailName?.localizedCaseInsensitiveContains(searchText) == true
+                return nameMatch || regionMatch || trailMatch || exitMatch
+            }
+        }
+        
+        // Sorting
+        switch sortOrder {
+        case .mostRecent:
+            result.sort { $0.dateTimeStart > $1.dateTimeStart }
+        case .oldestFirst:
+            result.sort { $0.dateTimeStart < $1.dateTimeStart }
+        case .highestElevation:
+            result.sort { log1, log2 in
+                let m1Elev = (allPeaks.first(where: { $0.id == log1.mountainId }) ?? mountainMap[log1.mountainId])?.elevationMASL ?? 0
+                let m2Elev = (allPeaks.first(where: { $0.id == log2.mountainId }) ?? mountainMap[log2.mountainId])?.elevationMASL ?? 0
+                return m1Elev > m2Elev
+            }
+        case .alphabetical:
+            result.sort { log1, log2 in
+                let name1 = (allPeaks.first(where: { $0.id == log1.mountainId }) ?? mountainMap[log1.mountainId])?.name ?? ""
+                let name2 = (allPeaks.first(where: { $0.id == log2.mountainId }) ?? mountainMap[log2.mountainId])?.name ?? ""
+                return name1.localizedCaseInsensitiveCompare(name2) == .orderedAscending
+            }
+        }
+        
+        return result
     }
     
     // MARK: - Firestore Listener
@@ -94,6 +212,12 @@ class SummitLogsViewModel: ObservableObject {
     
     func delete(_ log: HikeLog) {
         guard let user = Auth.auth().currentUser, let logId = log.id else { return }
+        if !log.photoUrls.isEmpty {
+            Task {
+                print("🗑️ Removing \(log.photoUrls.count) photos from Google Drive for deleted summit log...")
+                await GoogleDriveService.shared.deletePhotos(atUrls: log.photoUrls)
+            }
+        }
         Firestore.firestore()
             .collection("users").document(user.uid)
             .collection("hikeLogs").document(logId)

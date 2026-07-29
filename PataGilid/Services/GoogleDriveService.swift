@@ -111,17 +111,14 @@ class GoogleDriveService {
         return newId
     }
     
-    // MARK: - High-Resolution Photo Upload
+    // MARK: - Untouched High-Resolution Photo Upload
     
-    /// Uploads an uncompressed or high-res summit photo to the user's "PataGilid Climb Memories" Google Drive folder.
-    /// Returns a direct viewer URL or File reference string.
-    func uploadPhoto(image: UIImage, fileName: String) async throws -> String {
+    /// Uploads an untouched original high-res summit photo file to the user's "PataGilid Climb Memories" Google Drive folder.
+    /// Preserves 100% original image bitstream, native HEIC/JPEG file extension, and complete camera EXIF/GPS metadata.
+    /// - Returns: A direct viewer URL or File reference string.
+    func uploadPhotoAsset(data: Data, fileName: String, fileExtension: String = "jpg", mimeType: String = "image/jpeg") async throws -> String {
         let token = try await fetchAccessToken()
         let folderId = try await getOrCreatePhotoFolder()
-        
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
-            throw NSError(domain: "GoogleDriveService", code: 400, userInfo: [NSLocalizedDescriptionKey: "Failed to prepare image for upload."])
-        }
         
         let boundary = "Boundary-\(UUID().uuidString)"
         var components = URLComponents(string: driveUploadUrl)!
@@ -136,7 +133,7 @@ class GoogleDriveService {
         request.setValue("multipart/related; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
         let metadata: [String: Any] = [
-            "name": "\(fileName).jpg",
+            "name": "\(fileName).\(fileExtension)",
             "parents": [folderId]
         ]
         let metadataData = try JSONSerialization.data(withJSONObject: metadata)
@@ -148,10 +145,10 @@ class GoogleDriveService {
         body.append(metadataData)
         body.append("\r\n".data(using: .utf8)!)
         
-        // Part 2: JPEG Media Data
+        // Part 2: Untouched Media Bitstream
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
-        body.append(imageData)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(data)
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
         
         request.httpBody = body
@@ -187,6 +184,65 @@ class GoogleDriveService {
         // Return direct Google Drive download/view URL for AsyncImage
         let directImageUrl = "https://drive.google.com/uc?id=\(fileId)&export=view"
         return directImageUrl
+    }
+    
+    // MARK: - File Deletion & Cleanup
+    
+    /// Robustly extracts a Google Drive File ID from various viewer URL formats.
+    private func extractFileId(from urlString: String) -> String? {
+        if let components = URLComponents(string: urlString),
+           let id = components.queryItems?.first(where: { $0.name == "id" })?.value, !id.isEmpty {
+            return id
+        }
+        if urlString.contains("/file/d/") {
+            let parts = urlString.components(separatedBy: "/file/d/")
+            if parts.count > 1 {
+                let idPart = parts[1].components(separatedBy: "/").first ?? parts[1]
+                let id = idPart.components(separatedBy: "?").first ?? idPart
+                if !id.isEmpty { return id }
+            }
+        }
+        return nil
+    }
+    
+    /// Deletes a file directly from Google Drive using its file ID or direct viewer URL.
+    /// Silently removes old climb photos when logs are edited or deleted to maintain clean cloud storage.
+    func deletePhoto(atUrl urlString: String) async {
+        guard let fileId = extractFileId(from: urlString) else {
+            print("⚠️ [GoogleDriveService] Could not extract Google Drive file ID from URL: \(urlString)")
+            return
+        }
+        
+        do {
+            let token = try await fetchAccessToken()
+            guard let deleteUrl = URL(string: "\(driveApiBaseUrl)/\(fileId)") else { return }
+            
+            var request = URLRequest(url: deleteUrl)
+            request.httpMethod = "DELETE"
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) || httpResponse.statusCode == 404 {
+                print("🗑️ [GoogleDriveService] Successfully deleted obsolete photo from Google Drive (File ID: \(fileId)).")
+                // Purge from LocalPhotoCache so local disk space is freed immediately
+                LocalPhotoCache.shared.removeImage(for: urlString)
+            } else if let httpResponse = response as? HTTPURLResponse {
+                print("❌ [GoogleDriveService] Failed to delete photo (HTTP \(httpResponse.statusCode)).")
+            }
+        } catch {
+            print("❌ [GoogleDriveService] Error deleting photo from Google Drive: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Concurrently deletes multiple photo URLs from Google Drive when a log is deleted or photos are removed during editing.
+    func deletePhotos(atUrls urls: [String]) async {
+        await withTaskGroup(of: Void.self) { group in
+            for url in urls {
+                group.addTask {
+                    await self.deletePhoto(atUrl: url)
+                }
+            }
+        }
     }
     
     // MARK: - Personal Summit Logs Sync (AppData Folder)

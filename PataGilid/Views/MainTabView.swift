@@ -14,8 +14,6 @@ struct MainTabView: View {
     @StateObject private var peaksViewModel = PeaksViewModel()
     @State private var showAdminQueue: Bool = false
     @State private var selectedTab: Int = 0
-    @State private var isSeeding: Bool = false
-    @State private var seedMessage: String?
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = true
     
     var body: some View {
@@ -113,41 +111,6 @@ struct MainTabView: View {
                             }
                         }
                     }
-                    
-                    Section(header: Text("Database Synchronization")) {
-                        Button(action: {
-                            Task {
-                                isSeeding = true
-                                seedMessage = "Synchronizing 2,313 mountains to Firestore in batches..."
-                                do {
-                                    try await MountainDataSeeder.shared.seedMountainsIfNeeded()
-                                    seedMessage = "✅ All 2,313 mountains successfully synchronized!"
-                                } catch {
-                                    seedMessage = "❌ Sync failed: \(error.localizedDescription)"
-                                }
-                                isSeeding = false
-                            }
-                        }) {
-                            HStack {
-                                Image(systemName: "cloud.upload.fill")
-                                    .foregroundColor(.teal)
-                                Text(isSeeding ? "Syncing to Firestore..." : "Seed 2,313 Peaks to Firestore")
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                if isSeeding {
-                                    ProgressView()
-                                }
-                            }
-                        }
-                        .disabled(isSeeding)
-                        
-                        if let seedMessage = seedMessage {
-                            Text(seedMessage)
-                                .font(.caption)
-                                .foregroundColor(.teal)
-                        }
-                    }
-                    
                     Section(header: Text("Account Settings")) {
                         Button {
                             hasSeenOnboarding = false

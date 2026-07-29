@@ -28,6 +28,7 @@ class PeaksViewModel: ObservableObject {
     static weak var shared: PeaksViewModel?
     
     private var mountainsListener: ListenerRegistration?
+    private var latestCommunityPeaks: [Mountain] = []
     
     deinit {
         mountainsListener?.remove()
@@ -96,9 +97,19 @@ class PeaksViewModel: ObservableObject {
     
     func loadPeaks() {
         isLoading = true
-        // Instantly load the 2,688 bundled peaks without burning network or Firestore read quotas!
+        // Instantly load bundled or cached downloaded peaks without burning network or Firestore read quotas!
         self.allPeaks = MountainDataSeeder.shared.officialMountains
         self.isLoading = false
+        
+        // Silently synchronize from Google Firebase Cloud CDN in the background
+        Task {
+            let updated = await MountainDataSeeder.shared.fetchLatestCatalogFromFirebase()
+            if updated {
+                await MainActor.run {
+                    self.refreshCombinedPeaks()
+                }
+            }
+        }
         
         // Listen for dynamic community submissions in Firestore
         mountainsListener?.remove()
@@ -126,23 +137,28 @@ class PeaksViewModel: ObservableObject {
             
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
-                let staged = self.allPeaks.filter { self.stagedPeakIds.contains($0.id) }
-                var combined = MountainDataSeeder.shared.officialMountains
-                for peak in communityPeaks {
-                    if let idx = combined.firstIndex(where: { $0.id == peak.id || ($0.name.caseInsensitiveCompare(peak.name) == .orderedSame && $0.region == peak.region) }) {
-                        combined[idx] = peak
-                    } else {
-                        combined.append(peak)
-                    }
-                }
-                for stagedPeak in staged {
-                    if !combined.contains(where: { $0.id == stagedPeak.id }) {
-                        combined.append(stagedPeak)
-                    }
-                }
-                self.allPeaks = combined
+                self.latestCommunityPeaks = communityPeaks
+                self.refreshCombinedPeaks()
             }
         }
+    }
+    
+    func refreshCombinedPeaks() {
+        let staged = self.allPeaks.filter { self.stagedPeakIds.contains($0.id) }
+        var combined = MountainDataSeeder.shared.officialMountains
+        for peak in latestCommunityPeaks {
+            if let idx = combined.firstIndex(where: { $0.id == peak.id || ($0.name.caseInsensitiveCompare(peak.name) == .orderedSame && $0.region == peak.region) }) {
+                combined[idx] = peak
+            } else {
+                combined.append(peak)
+            }
+        }
+        for stagedPeak in staged {
+            if !combined.contains(where: { $0.id == stagedPeak.id }) {
+                combined.append(stagedPeak)
+            }
+        }
+        self.allPeaks = combined
     }
     
     func selectIslandGroup(_ group: IslandGroup?) {

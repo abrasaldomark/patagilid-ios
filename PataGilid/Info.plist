@@ -15,5 +15,7 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>PataGilid needs photo library access to upload original high-resolution climb photos to your Google Drive.</string>
 </dict>
 </plist>

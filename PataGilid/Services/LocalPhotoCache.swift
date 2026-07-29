@@ -97,6 +97,20 @@ final class LocalPhotoCache {
         }
     }
     
+    /// Removes a specific cached photo from both RAM and local disk when deleted from a log.
+    func removeImage(for key: String) {
+        guard !key.isEmpty else { return }
+        memoryCache.removeObject(forKey: key as NSString)
+        guard let directory = diskCacheDirectory else { return }
+        let fileURL = directory.appendingPathComponent(filename(for: key))
+        ioQueue.async { [weak self] in
+            if self?.fileManager.fileExists(atPath: fileURL.path) == true {
+                try? self?.fileManager.removeItem(at: fileURL)
+                print("🗑️ [LocalPhotoCache] Removed deleted photo from offline disk cache: \(key.prefix(45))...")
+            }
+        }
+    }
+    
     /// Clears all offline photo disk storage if desired by the user.
     func clearCache() {
         memoryCache.removeAllObjects()

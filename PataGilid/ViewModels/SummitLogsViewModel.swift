@@ -23,6 +23,13 @@ enum LogOutcomeFilter: String, CaseIterable {
     case backedOut = "Backed Out"
 }
 
+enum LogQuickFilter: String, CaseIterable, Identifiable {
+    case summited  = "🏆 Summited"
+    case backedOut = "🚫 Backed Out"
+    
+    var id: String { rawValue }
+}
+
 /// ViewModel providing a real-time feed of the signed-in hiker's personal summit logs
 /// from `users/{userId}/hikeLogs`, ordered by most recent attempt first.
 @MainActor
@@ -36,6 +43,7 @@ class SummitLogsViewModel: ObservableObject {
     @Published var selectedIslandGroup: IslandGroup? = nil
     @Published var selectedRegion: String? = nil
     @Published var selectedOutcome: LogOutcomeFilter = .all
+    @Published var selectedQuickFilter: LogQuickFilter? = nil
     @Published var sortOrder: LogSortOrder = .mostRecent
     
     /// O(1) mountain lookup map built from the bundled JSON catalog.
@@ -68,8 +76,27 @@ class SummitLogsViewModel: ObservableObject {
         selectedIslandGroup = nil
         selectedRegion = nil
         selectedOutcome = .all
+        selectedQuickFilter = nil
         searchText = ""
         sortOrder = .mostRecent
+    }
+    
+    func toggleQuickFilter(_ filter: LogQuickFilter) {
+        if selectedQuickFilter == filter {
+            selectedQuickFilter = nil
+            if filter == .summited || filter == .backedOut {
+                selectedOutcome = .all
+            }
+        } else {
+            selectedQuickFilter = filter
+            if filter == .summited {
+                selectedOutcome = .summited
+            } else if filter == .backedOut {
+                selectedOutcome = .backedOut
+            } else {
+                selectedOutcome = .all
+            }
+        }
     }
     
     func selectIslandGroup(_ group: IslandGroup) {
@@ -134,6 +161,16 @@ class SummitLogsViewModel: ObservableObject {
                 let trailMatch = log.trailName?.localizedCaseInsensitiveContains(searchText) == true
                 let exitMatch = log.exitTrailName?.localizedCaseInsensitiveContains(searchText) == true
                 return nameMatch || regionMatch || trailMatch || exitMatch
+            }
+        }
+        
+        // Quick filter
+        if let quick = selectedQuickFilter {
+            switch quick {
+            case .summited:
+                result = result.filter { $0.didSummit }
+            case .backedOut:
+                result = result.filter { !$0.didSummit }
             }
         }
         

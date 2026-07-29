@@ -49,30 +49,29 @@ struct AddCustomMountainView: View {
         switch selectedIslandGroup {
         case .luzon:
             return [
-                "Cordillera Administrative Region (CAR)",
-                "Ilocos Region (Region I)",
-                "Cagayan Valley (Region II)",
-                "Central Luzon (Region III)",
-                "CALABARZON (Region IV-A)",
-                "MIMAROPA (Region IV-B)",
-                "Bicol Region (Region V)",
-                "National Capital Region (NCR)"
+                "CAR (Cordillera Administrative Region)",
+                "Region 1 (Ilocos Region)",
+                "Region 2 (Cagayan Valley)",
+                "Region 3 (Central Luzon)",
+                "Region 4A (CALABARZON)",
+                "Region 4B (MIMAROPA)",
+                "Region 5 (Bicol Region)",
+                "NCR (National Capital Region)"
             ]
         case .visayas:
             return [
-                "Western Visayas (Region VI)",
-                "Central Visayas (Region VII)",
-                "Eastern Visayas (Region VIII)",
-                "Negros Island Region (NIR)"
+                "Region 6 (Western Visayas)",
+                "Region 7 (Central Visayas)",
+                "Region 8 (Eastern Visayas)"
             ]
         case .mindanao:
             return [
-                "Zamboanga Peninsula (Region IX)",
-                "Northern Mindanao (Region X)",
-                "Davao Region (Region XI)",
-                "SOCCSKSARGEN (Region XII)",
-                "Caraga (Region XIII)",
-                "Bangsamoro (BARMM)"
+                "Region 9 (Zamboanga Peninsula)",
+                "Region 10 (Northern Mindanao)",
+                "Region 11 (Davao Region)",
+                "Region 12 (SOCCSKSARGEN)",
+                "Region 13 (Caraga)",
+                "BARMM (Bangsamoro)"
             ]
         }
     }

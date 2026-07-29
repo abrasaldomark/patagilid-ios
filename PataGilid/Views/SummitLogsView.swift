@@ -154,11 +154,48 @@ struct SummitLogsView: View {
     
     private var logList: some View {
         VStack(spacing: 0) {
+            // MARK: - Smart Quick Chips
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(LogQuickFilter.allCases) { tag in
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                viewModel.toggleQuickFilter(tag)
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(tag.rawValue)
+                                if viewModel.selectedQuickFilter == tag {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 11))
+                                }
+                            }
+                            .font(.caption2)
+                            .fontWeight(viewModel.selectedQuickFilter == tag ? .bold : .medium)
+                            .foregroundColor(viewModel.selectedQuickFilter == tag ? .white : .primary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(
+                                viewModel.selectedQuickFilter == tag ?
+                                Color.emeraldGreen : Color.secondary.opacity(0.12)
+                            )
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+            }
+            .background(Color.secondary.opacity(0.03))
+            
             // Island Group Filter Bar
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    FilterPill(title: "All (\(viewModel.logs.count))", isSelected: viewModel.selectedIslandGroup == nil && viewModel.selectedRegion == nil && viewModel.selectedOutcome == .all) {
-                        viewModel.resetFilters()
+                    FilterPill(title: "All (\(viewModel.logs.count))", isSelected: viewModel.selectedIslandGroup == nil && viewModel.selectedRegion == nil && viewModel.selectedOutcome == .all && viewModel.selectedQuickFilter == nil) {
+                        withAnimation(.easeInOut) {
+                            viewModel.resetFilters()
+                        }
                     }
                     
                     ForEach(IslandGroup.allCases) { group in

@@ -9,15 +9,55 @@ import SwiftUI
 
 /// An interactive, responsive explorer presenting all 2,688 Philippine mountain peaks with search, filtering, and sorting.
 struct PeaksListView: View {
-    @StateObject private var viewModel = PeaksViewModel()
+    @EnvironmentObject var viewModel: PeaksViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
+    
+    @State private var showAddCustomPeak: Bool = false
+    @State private var showAdminQueue: Bool = false
+    @State private var selectedNewPeak: Mountain? = nil
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                // MARK: - In-App Admin Review Banner
+                if authViewModel.isAdmin {
+                    Button {
+                        showAdminQueue = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: viewModel.pendingReviewPeaks.isEmpty ? "shield.checkmark.fill" : "shield.checkerboard")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(viewModel.pendingReviewPeaks.isEmpty ? "Admin Superpowers Active" : "🔔 Admin Review Queue")
+                                    .font(.subheadline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                Text(viewModel.pendingReviewPeaks.isEmpty ? "0 pending community submissions • All clear!" : "\(viewModel.pendingReviewPeaks.count) community peak(s) awaiting verification • Tap to Action")
+                                    .font(.caption2)
+                                    .foregroundColor(.white.opacity(0.95))
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            viewModel.pendingReviewPeaks.isEmpty ?
+                            LinearGradient(gradient: Gradient(colors: [Color.emeraldGreen, Color.teal]), startPoint: .leading, endPoint: .trailing) :
+                            LinearGradient(gradient: Gradient(colors: [Color.orange, Color.red]), startPoint: .leading, endPoint: .trailing)
+                        )
+                        .shadow(color: (viewModel.pendingReviewPeaks.isEmpty ? Color.teal : Color.orange).opacity(0.3), radius: 4, x: 0, y: 2)
+                    }
+                    .buttonStyle(.plain)
+                }
+                
                 // Island Group Filter Bar
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        FilterPill(title: "All (\(viewModel.allPeaks.count))", isSelected: viewModel.selectedIslandGroup == nil && viewModel.selectedRegion == nil) {
+                        FilterPill(title: "All (\(viewModel.publicPeaks.count))", isSelected: viewModel.selectedIslandGroup == nil && viewModel.selectedRegion == nil) {
                             viewModel.resetFilters()
                         }
                         
@@ -53,7 +93,7 @@ struct PeaksListView: View {
                 
                 // Peak Count Banner
                 HStack {
-                    Text("Showing \(viewModel.filteredAndSortedPeaks.count) of \(viewModel.allPeaks.count) Peaks")
+                    Text("Showing \(viewModel.filteredAndSortedPeaks.count) of \(viewModel.publicPeaks.count) Peaks")
                         .font(.caption)
                         .foregroundColor(.gray)
                     Spacer()
@@ -61,21 +101,75 @@ struct PeaksListView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 6)
                 
-                // Mountain List
-                List {
-                    ForEach(viewModel.filteredAndSortedPeaks) { mountain in
-                        NavigationLink(destination: PeakDetailView(mountain: mountain)) {
-                            PeakRowView(mountain: mountain)
+                // Mountain List & Empty Search State
+                if viewModel.filteredAndSortedPeaks.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "mountain.2.fill")
+                            .font(.system(size: 56))
+                            .foregroundColor(.secondary.opacity(0.4))
+                        Text(viewModel.searchText.isEmpty ? "No peaks found" : "No peaks matched '\(viewModel.searchText)'")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        Text("Can't find the local mountain or trail you climbed? Contribute it directly to PataGilid!")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                        
+                        Button {
+                            showAddCustomPeak = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus.circle.fill")
+                                Text("Contribute Missing Peak")
+                            }
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(Color.emeraldGreen)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                            .shadow(color: Color.emeraldGreen.opacity(0.3), radius: 6, x: 0, y: 3)
                         }
-                        .listRowSeparator(.visible)
-                        .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                        .buttonStyle(.plain)
+                        .padding(.top, 4)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(.systemGroupedBackground))
+                } else {
+                    List {
+                        ForEach(viewModel.filteredAndSortedPeaks) { mountain in
+                            NavigationLink(destination: PeakDetailView(mountain: mountain)) {
+                                PeakRowView(mountain: mountain)
+                            }
+                            .listRowSeparator(.visible)
+                            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                        }
+                    }
+                    .listStyle(.plain)
+                }
+            }
+            .searchable(text: $viewModel.searchText, prompt: "Search by Name, Region (e.g. Region 6), or Details")
+            .navigationTitle("Philippine Peaks")
+            .navigationDestination(item: $selectedNewPeak) { peak in
+                PeakDetailView(mountain: peak)
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        showAddCustomPeak = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus.circle.fill")
+                            Text("Add Peak")
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.emeraldGreen)
                     }
                 }
-                .listStyle(.plain)
-                .searchable(text: $viewModel.searchText, prompt: "Search by Name, Region (e.g. Region 6), or Details")
-            }
-            .navigationTitle("Philippine Peaks")
-            .toolbar {
+                
                 // Sorting & Region Filters Menu
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
@@ -116,6 +210,17 @@ struct PeaksListView: View {
                             .foregroundColor(.teal)
                     }
                 }
+            }
+            .sheet(isPresented: $showAddCustomPeak) {
+                AddCustomMountainView { newPeak in
+                    selectedNewPeak = newPeak
+                }
+                .environmentObject(authViewModel)
+                .environmentObject(viewModel)
+            }
+            .sheet(isPresented: $showAdminQueue) {
+                AdminModerationQueueView()
+                    .environmentObject(viewModel)
             }
         }
     }
@@ -192,4 +297,6 @@ struct PeakRowView: View {
 
 #Preview {
     PeaksListView()
+        .environmentObject(PeaksViewModel())
+        .environmentObject(AuthViewModel())
 }

@@ -30,11 +30,11 @@ struct PhotoUploadService {
         return refs
     }
     
-    /// Uploads up to 3 images for a specific user and returns their storage download URLs.
+    /// Uploads up to 3 climb images directly into the hiker's private "PataGilid Climb Memories" Google Drive folder.
     /// - Parameters:
     ///   - images: Array of UIImages to upload.
     ///   - userId: The ID of the authenticated user.
-    /// - Returns: An array of download URL strings from Firebase Storage.
+    /// - Returns: An array of direct viewing URL strings from Google Drive.
     static func uploadPhotos(images: [UIImage], userId: String) async throws -> [String] {
         guard !images.isEmpty else { return [] }
         
@@ -42,50 +42,15 @@ struct PhotoUploadService {
         let imagesToUpload = Array(images.prefix(3))
         
         for (index, image) in imagesToUpload.enumerated() {
-            // Compress image to JPEG at 70% quality for optimal bandwidth usage and storage efficiency
-            guard let imageData = image.jpegData(compressionQuality: 0.7) else {
-                continue
-            }
-            
-            let imageId = UUID().uuidString
-            let filePath = "users/\(userId)/hikeLogs/\(imageId).jpg"
-            let candidateRefs = candidateReferences(for: filePath)
-            
-            let metadata = StorageMetadata()
-            metadata.contentType = "image/jpeg"
-            
-            var successfulDownloadUrl: String? = nil
-            var lastError: Error? = nil
-            
-            // Attempt upload across candidate bucket domain names (.firebasestorage.app vs .appspot.com)
-            for fileRef in candidateRefs {
-                do {
-                    _ = try await fileRef.putDataAsync(imageData, metadata: metadata)
-                    let downloadURL = try await fileRef.downloadURL()
-                    successfulDownloadUrl = downloadURL.absoluteString
-                    break
-                } catch {
-                    lastError = error
-                    print("⚠️ [PhotoUploadService] Upload failed for candidate bucket (\(fileRef.bucket)): \(error)")
-                    
-                    // If Google Cloud returns 404 Not Found, try the fallback domain in the next loop iteration
-                    if case .objectNotFound = error as? StorageError {
-                        continue
-                    }
-                    // If it's permission denied or other error, fail immediately without retrying domains
-                    break
-                }
-            }
-            
-            if let url = successfulDownloadUrl {
-                downloadUrls.append(url)
-            } else if let error = lastError {
-                print("❌ [PhotoUploadService] All upload attempts failed for photo #\(index+1): \(error)")
-                if case .objectNotFound = error as? StorageError {
-                    throw NSError(domain: "PhotoUploadService", code: 404, userInfo: [
-                        NSLocalizedDescriptionKey: "Cloud Storage bucket not found (HTTP 404). Please ensure you clicked 'Get Started' under Storage in Firebase Console."
-                    ])
-                }
+            let photoName = "climb_\(Int(Date().timeIntervalSince1970))_\(index + 1)"
+            do {
+                let driveViewUrl = try await GoogleDriveService.shared.uploadPhoto(image: image, fileName: photoName)
+                downloadUrls.append(driveViewUrl)
+                // Instantly cache uploaded photo to local disk so it renders instantly offline without re-downloading
+                LocalPhotoCache.shared.save(image: image, for: driveViewUrl)
+                print("📸 [PhotoUploadService] Successfully stored photo #\(index + 1) in user's personal Google Drive and cached locally!")
+            } catch {
+                print("❌ [PhotoUploadService] Failed to upload photo #\(index + 1) to Google Drive: \(error.localizedDescription)")
                 throw error
             }
         }

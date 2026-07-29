@@ -46,9 +46,14 @@ class HikeLogViewModel: ObservableObject {
     @Published var trailDifficulty: String = ""
     @Published var trailClass: String = ""
     
-    // MARK: - Photo Attachments (Max 3)
+    // MARK: - Photo Attachments (Max 50)
     @Published var selectedPhotos: [PhotosPickerItem] = []
     @Published var selectedImages: [UIImage] = []
+    @Published var existingPhotoUrls: [String] = []
+    
+    var totalPhotosCount: Int {
+        existingPhotoUrls.count + selectedImages.count
+    }
     
     // MARK: - Status
     @Published var isSaving: Bool = false
@@ -78,10 +83,29 @@ class HikeLogViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Submission
+    /// Removes an existing photo URL from an existing log being edited.
+    func removeExistingImage(at index: Int) {
+        guard index < existingPhotoUrls.count else { return }
+        existingPhotoUrls.remove(at: index)
+    }
     
-    /// Validates form, uploads attached photos to Firebase Storage, and writes HikeLog to Firestore.
-    func submitLog(for mountainId: String) {
+    /// Populates form state from an existing log when in edit mode.
+    func setupForEditing(log: HikeLog) {
+        self.dateTimeStart = log.dateTimeStart
+        self.dateTimeEnd = log.dateTimeEnd
+        self.outcome = log.didSummit ? .summited : .turnedBack
+        self.trailName = log.trailName ?? ""
+        self.isTraverse = log.isTraverse == true
+        self.exitTrailName = log.exitTrailName ?? ""
+        self.trailDifficulty = log.trailDifficulty ?? ""
+        self.trailClass = log.trailClass ?? ""
+        self.existingPhotoUrls = log.cleanPhotoUrls
+    }
+    
+    // MARK: - Submission & Deletion
+    
+    /// Validates form, uploads attached photos, triggers Commit-on-Climb if needed, and writes or updates HikeLog in Firestore.
+    func submitLog(for mountain: Mountain, editingLog: HikeLog? = nil, onSave: @escaping (HikeLog) -> Void = { _ in }) {
         guard let user = Auth.auth().currentUser else {
             errorMessage = "You must be signed in to record climb logs."
             return
@@ -97,46 +121,83 @@ class HikeLogViewModel: ObservableObject {
         
         Task {
             do {
-                var uploadedUrls: [String] = []
+                // Commit-on-Climb: If this is an uncommitted custom mountain staged in local memory, commit it to Firestore now!
+                await PeaksViewModel.shared?.commitStagedMountainIfNeeded(mountain)
+                
+                var newlyUploadedUrls: [String] = []
                 if !selectedImages.isEmpty {
-                    uploadedUrls = try await PhotoUploadService.uploadPhotos(images: selectedImages, userId: user.uid)
+                    newlyUploadedUrls = try await PhotoUploadService.uploadPhotos(images: selectedImages, userId: user.uid)
                 }
+                
+                let combinedPhotoUrls = existingPhotoUrls + newlyUploadedUrls
                 
                 let cleanTrailName = trailName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : trailName.trimmingCharacters(in: .whitespacesAndNewlines)
                 let cleanExitTrail = (isTraverse && !exitTrailName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) ? exitTrailName.trimmingCharacters(in: .whitespacesAndNewlines) : nil
                 let cleanDifficulty = trailDifficulty.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : trailDifficulty.trimmingCharacters(in: .whitespacesAndNewlines)
                 let cleanTrailClass = trailClass.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : trailClass.trimmingCharacters(in: .whitespacesAndNewlines)
 
-                let hikeLog = HikeLog(
+                var hikeLog = HikeLog(
                     userId: user.uid,
-                    mountainId: mountainId,
+                    mountainId: mountain.id,
                     dateTimeStart: dateTimeStart,
                     dateTimeEnd: dateTimeEnd,
                     didSummit: outcome == .summited,
-                    photoUrls: uploadedUrls,
+                    photoUrls: combinedPhotoUrls,
                     trailName: cleanTrailName,
-                    isTraverse: isTraverse,
+                    isTraverse: isTraverse ? true : nil,
                     exitTrailName: cleanExitTrail,
                     trailDifficulty: cleanDifficulty,
                     trailClass: cleanTrailClass
                 )
                 
                 let db = Firestore.firestore()
-                let ref = db.collection("users").document(user.uid).collection("hikeLogs")
+                let logsRef = db.collection("users").document(user.uid).collection("hikeLogs")
                 
-                try ref.addDocument(from: hikeLog) { [weak self] error in
-                    Task { @MainActor [weak self] in
-                        self?.isSaving = false
-                        if let error {
-                            self?.errorMessage = "Failed to save: \(error.localizedDescription)"
-                        } else {
-                            self?.didCompleteSuccess = true
+                if let docId = editingLog?.id {
+                    hikeLog.id = docId
+                    try logsRef.document(docId).setData(from: hikeLog) { [weak self] error in
+                        Task { @MainActor [weak self] in
+                            self?.isSaving = false
+                            if let error {
+                                self?.errorMessage = "Failed to update: \(error.localizedDescription)"
+                            } else {
+                                self?.didCompleteSuccess = true
+                                onSave(hikeLog)
+                            }
+                        }
+                    }
+                } else {
+                    try logsRef.addDocument(from: hikeLog) { [weak self] error in
+                        Task { @MainActor [weak self] in
+                            self?.isSaving = false
+                            if let error {
+                                self?.errorMessage = "Failed to save: \(error.localizedDescription)"
+                            } else {
+                                self?.didCompleteSuccess = true
+                                onSave(hikeLog)
+                            }
                         }
                     }
                 }
             } catch {
                 self.isSaving = false
                 self.errorMessage = "Photo upload failed: \(error.localizedDescription)"
+            }
+        }
+    }
+    
+    /// Permanently removes a recorded climb log from Firestore.
+    func deleteLog(_ log: HikeLog, completion: @escaping () -> Void = {}) {
+        guard let user = Auth.auth().currentUser, let docId = log.id else { return }
+        isSaving = true
+        Firestore.firestore().collection("users").document(user.uid).collection("hikeLogs").document(docId).delete { [weak self] error in
+            Task { @MainActor [weak self] in
+                self?.isSaving = false
+                if let error {
+                    self?.errorMessage = "Failed to delete log: \(error.localizedDescription)"
+                } else {
+                    completion()
+                }
             }
         }
     }

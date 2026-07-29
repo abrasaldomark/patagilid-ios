@@ -65,11 +65,28 @@ class SummitLogsViewModel: ObservableObject {
                 isLoading = false
                 if let error {
                     errorMessage = error.localizedDescription
+                    // Offline fallback: restore directly from hiker's private Google Drive backup!
+                    Task {
+                        if let restored = try? await GoogleDriveService.shared.loadSummitLogs(), !restored.isEmpty {
+                            await MainActor.run {
+                                self.logs = restored
+                                self.errorMessage = nil
+                            }
+                        }
+                    }
                     return
                 }
-                logs = snapshot?.documents.compactMap {
+                let fetchedLogs: [HikeLog] = snapshot?.documents.compactMap {
                     try? $0.data(as: HikeLog.self)
                 } ?? []
+                logs = fetchedLogs
+                
+                // Simultaneously sync & preserve hiker's personal climbing legacy to their Google Drive!
+                if !fetchedLogs.isEmpty {
+                    Task {
+                        try? await GoogleDriveService.shared.saveSummitLogs(fetchedLogs)
+                    }
+                }
             }
     }
     

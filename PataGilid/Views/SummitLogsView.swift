@@ -10,6 +10,7 @@ import SwiftUI
 /// The hiker's personal activity feed — a chronological list of recorded climb attempts.
 struct SummitLogsView: View {
     @StateObject private var viewModel = SummitLogsViewModel()
+    @EnvironmentObject var peaksViewModel: PeaksViewModel
     
     var body: some View {
         NavigationStack {
@@ -100,7 +101,7 @@ struct SummitLogsView: View {
     private var logList: some View {
         List {
             ForEach(viewModel.logs) { log in
-                let mountain = viewModel.mountain(for: log.mountainId)
+                let mountain = peaksViewModel.allPeaks.first(where: { $0.id == log.mountainId }) ?? viewModel.mountain(for: log.mountainId)
                 NavigationLink(destination: SummitLogDetailView(log: log, mountain: mountain)) {
                     SummitLogRow(log: log, mountain: mountain)
                 }
@@ -129,7 +130,7 @@ struct SummitLogRow: View {
             
             VStack(alignment: .leading, spacing: 5) {
                 // Mountain name
-                Text(mountain?.name ?? log.mountainId)
+                Text(mountain?.name ?? (log.mountainId.contains("_") ? log.mountainId.components(separatedBy: "_").dropFirst().first?.replacingOccurrences(of: "-", with: " ").capitalized ?? "Custom Mountain" : "Unlisted Local Mountain"))
                     .font(.headline)
                     .foregroundColor(.primary)
                     .lineLimit(1)
@@ -187,6 +188,41 @@ struct SummitLogRow: View {
                 }
                 
                 outcomeBadge
+                
+                if !log.cleanPhotoUrls.isEmpty {
+                    HStack(spacing: 8) {
+                        ForEach(log.cleanPhotoUrls, id: \.self) { urlString in
+                            CachedAsyncImage(url: URL(string: urlString)) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                        .frame(width: 58, height: 58)
+                                        .background(Color.secondary.opacity(0.1))
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 58, height: 58)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                                        )
+                                case .failure:
+                                    Image(systemName: "photo.fill")
+                                        .foregroundColor(.secondary)
+                                        .frame(width: 58, height: 58)
+                                        .background(Color.secondary.opacity(0.1))
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
+                        }
+                    }
+                    .padding(.top, 4)
+                }
             }
             
             Spacer(minLength: 0)

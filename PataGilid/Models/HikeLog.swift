@@ -28,8 +28,22 @@ struct HikeLog: Codable, Identifiable {
     /// `false` implies the attempt was a turn-back.
     var didSummit: Bool
     
-    /// Array of compressed image download URLs from Firebase Cloud Storage (Maximum 3 photos).
+    /// Array of compressed image download URLs from Firebase Cloud Storage or Google Drive (Maximum 3 photos).
     var photoUrls: [String]
+    
+    /// Sanitizes photo URLs, automatically converting Google Drive web preview links into direct downloadable image URLs for AsyncImage.
+    var cleanPhotoUrls: [String] {
+        return photoUrls.map { url in
+            if url.contains("drive.google.com/file/d/") {
+                let components = url.components(separatedBy: "file/d/")
+                if components.count > 1 {
+                    let idPart = components[1].components(separatedBy: "/")[0].components(separatedBy: "?")[0]
+                    return "https://drive.google.com/uc?id=\(idPart)&export=view"
+                }
+            }
+            return url
+        }
+    }
     
     /// Optional custom trail or traverse route taken (e.g., "Kule Trail"). For a traverse, this is the Entry Trail.
     var trailName: String?

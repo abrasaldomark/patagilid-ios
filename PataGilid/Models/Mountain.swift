@@ -45,4 +45,21 @@ struct Mountain: Codable, Identifiable, Hashable {
     
     /// Technical terrain grading (e.g., "Class 1-2", "Class 3", "Class 4").
     var trailClass: String
+    
+    // MARK: - Community Submission Metadata
+    
+    /// Approval status for crowdsourced local mountains.
+    /// `false` for pending user-submitted peaks; `nil` or `true` for official catalog peaks.
+    var isApproved: Bool?
+    
+    /// Firebase Auth User ID of the explorer who contributed this local peak.
+    var contributorId: String?
+    
+    /// Contributor email address for administrative moderation context.
+    var contributorEmail: String?
+    
+    /// Helper property determining if this mountain should be displayed in the global public directory.
+    var isPubliclyApproved: Bool {
+        return isApproved ?? true
+    }
 }

@@ -24,6 +24,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         if let clientID = FirebaseApp.app()?.options.clientID {
             let configuration = GIDConfiguration(clientID: clientID)
             GIDSignIn.sharedInstance.configuration = configuration
+            GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
+                if let user = user {
+                    print("🔄 [AppDelegate] Restored active Google session for: \(user.profile?.email ?? "User")")
+                }
+            }
         }
 
         return true

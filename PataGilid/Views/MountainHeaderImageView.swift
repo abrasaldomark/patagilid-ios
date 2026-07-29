@@ -22,7 +22,7 @@ struct MountainHeaderImageView: View {
         Group {
             if let photoURL = communityPhotoURL {
                 // Live Community Climb Photo
-                AsyncImage(url: photoURL) { phase in
+                CachedAsyncImage(url: photoURL) { phase in
                     switch phase {
                     case .empty:
                         defaultPlaceholder

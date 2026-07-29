@@ -9,17 +9,30 @@ import SwiftUI
 
 /// Full detail screen for a single recorded climb attempt.
 struct SummitLogDetailView: View {
-    let log: HikeLog
+    @State private var log: HikeLog
     let mountain: Mountain?
+    
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var actionViewModel = HikeLogViewModel()
+    @State private var selectedPhotoIndex: Int = 0
+    @State private var isShowingPhotoGallery: Bool = false
+    @State private var isShowingEditModal: Bool = false
+    @State private var isShowingDeleteConfirm: Bool = false
+    
+    init(log: HikeLog, mountain: Mountain?) {
+        _log = State(initialValue: log)
+        self.mountain = mountain
+    }
     
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
                 outcomeHero
                 detailCards
-                if !log.photoUrls.isEmpty {
+                if !log.cleanPhotoUrls.isEmpty {
                     photosCard
                 }
+                deleteButton
                 Spacer(minLength: 20)
             }
             .padding(.horizontal)
@@ -28,6 +41,32 @@ struct SummitLogDetailView: View {
         .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
         .navigationTitle(mountain?.name ?? "Climb Log")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Edit") {
+                    isShowingEditModal = true
+                }
+                .fontWeight(.semibold)
+                .foregroundColor(.emeraldGreen)
+            }
+        }
+        .sheet(isPresented: $isShowingEditModal) {
+            let targetMountain = mountain ?? Mountain(
+                id: log.mountainId,
+                name: "Recorded Climb",
+                description: "",
+                elevationMASL: 0,
+                latitude: 0,
+                longitude: 0,
+                region: "Philippines",
+                islandGroup: .luzon,
+                difficultyLevel: log.trailDifficulty ?? "Unknown",
+                trailClass: log.trailClass ?? "Unknown"
+            )
+            HikeLogCreationView(mountain: targetMountain, logToEdit: log) { updatedLog in
+                self.log = updatedLog
+            }
+        }
     }
     
     // MARK: - Outcome Hero Banner
@@ -138,43 +177,52 @@ struct SummitLogDetailView: View {
     // MARK: - Photos Card
     
     private var photosCard: some View {
-        sectionCard(title: "Climb Photos (\(log.photoUrls.count))") {
+        sectionCard(title: "Climb Photos (\(log.cleanPhotoUrls.count))") {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
-                    ForEach(log.photoUrls, id: \.self) { urlString in
-                        AsyncImage(url: URL(string: urlString)) { phase in
-                            switch phase {
-                            case .empty:
-                                ProgressView()
+                    ForEach(Array(log.cleanPhotoUrls.enumerated()), id: \.offset) { index, urlString in
+                        Button {
+                            selectedPhotoIndex = index
+                            isShowingPhotoGallery = true
+                        } label: {
+                            CachedAsyncImage(url: URL(string: urlString)) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                        .frame(width: 160, height: 160)
+                                        .background(Color.secondary.opacity(0.1))
+                                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 160, height: 160)
+                                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                                case .failure:
+                                    VStack(spacing: 6) {
+                                        Image(systemName: "photo.fill")
+                                            .foregroundColor(.secondary)
+                                        Text("Failed to load")
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                    }
                                     .frame(width: 160, height: 160)
                                     .background(Color.secondary.opacity(0.1))
                                     .clipShape(RoundedRectangle(cornerRadius: 14))
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 160, height: 160)
-                                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-                            case .failure:
-                                VStack(spacing: 6) {
-                                    Image(systemName: "photo.fill")
-                                        .foregroundColor(.secondary)
-                                    Text("Failed to load")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
+                                @unknown default:
+                                    EmptyView()
                                 }
-                                .frame(width: 160, height: 160)
-                                .background(Color.secondary.opacity(0.1))
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
-                            @unknown default:
-                                EmptyView()
                             }
                         }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding()
             }
+        }
+        .fullScreenCover(isPresented: $isShowingPhotoGallery) {
+            FullScreenPhotoGalleryView(photoUrls: log.cleanPhotoUrls, selectedIndex: $selectedPhotoIndex)
         }
     }
     
@@ -229,6 +277,37 @@ struct SummitLogDetailView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
+    }
+    
+    // MARK: - Delete Action
+    
+    private var deleteButton: some View {
+        Button {
+            isShowingDeleteConfirm = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "trash.fill")
+                Text("Delete Climb Log")
+                    .fontWeight(.semibold)
+            }
+            .font(.subheadline)
+            .foregroundColor(.red)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Color.red.opacity(0.10))
+            .cornerRadius(12)
+        }
+        .padding(.top, 12)
+        .alert("Delete Climb Log?", isPresented: $isShowingDeleteConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                actionViewModel.deleteLog(log) {
+                    dismiss()
+                }
+            }
+        } message: {
+            Text("This action cannot be undone. The climb log and any attached photos will be permanently removed.")
+        }
     }
 }
 

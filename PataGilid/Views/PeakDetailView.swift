@@ -9,6 +9,7 @@ import SwiftUI
 
 /// An in-depth summit dashboard presenting coordinates, difficulty metrics, regional classification, and logging triggers.
 struct PeakDetailView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
     let mountain: Mountain
     @State private var showingLogModal: Bool = false
     /// Regenerated on every toolbar tap to guarantee a fresh @StateObject in the sheet.
@@ -31,6 +32,20 @@ struct PeakDetailView: View {
                                 .background(Color.emeraldGreen)
                                 .foregroundColor(.black)
                                 .clipShape(Capsule())
+                            
+                            if !mountain.isPubliclyApproved {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "clock.badge.fill")
+                                    Text("Pending Review")
+                                }
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.orange)
+                                .foregroundColor(.white)
+                                .clipShape(Capsule())
+                            }
                             
                             Spacer()
                             
@@ -108,6 +123,13 @@ struct PeakDetailView: View {
         .sheet(isPresented: $showingLogModal) {
             HikeLogCreationView(mountain: mountain)
                 .id(logSessionId)
+                .environmentObject(authViewModel)
+        }
+        .onDisappear {
+            if !showingLogModal {
+                // Commit-on-Climb: Evaporate uncommitted staged peak if user navigates away without recording an ascent
+                PeaksViewModel.shared?.discardStagedMountainIfNeeded(mountain)
+            }
         }
     }
 }
@@ -145,5 +167,6 @@ struct SpecCard: View {
 #Preview {
     NavigationStack {
         PeakDetailView(mountain: Mountain(id: "test", name: "Mount Apo", description: "The highest mountain in the Philippines.", elevationMASL: 2954, latitude: 6.9875, longitude: 125.2711, region: "Region 11 (Davao Region)", islandGroup: .mindanao, difficultyLevel: "7/9 (Major)", trailClass: "Class 2-4"))
+            .environmentObject(AuthViewModel())
     }
 }

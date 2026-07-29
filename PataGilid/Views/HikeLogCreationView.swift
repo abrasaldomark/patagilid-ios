@@ -10,7 +10,10 @@ import PhotosUI
 
 /// Modal sheet for recording a climb attempt — date, summit count, DNF count, and up to 3 photos.
 struct HikeLogCreationView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
     let mountain: Mountain
+    var logToEdit: HikeLog? = nil
+    var onSave: ((HikeLog) -> Void)? = nil
     @StateObject private var viewModel = HikeLogViewModel()
     @Environment(\.dismiss) private var dismiss
     
@@ -25,7 +28,7 @@ struct HikeLogCreationView: View {
                     activityForm
                     trailDetailsForm
                     
-                    if isProUser {
+                    if isProUser || authViewModel.isAdmin {
                         photosForm
                     } else {
                         lockedProPhotosCard
@@ -38,17 +41,25 @@ struct HikeLogCreationView: View {
                 }
                 .padding(.bottom, 24)
             }
-            .navigationTitle("Log Ascent")
+            .navigationTitle(logToEdit == nil ? "Log Ascent" : "Edit Ascent Log")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }
-                        .disabled(viewModel.isSaving)
+                    Button("Cancel") {
+                        if logToEdit == nil {
+                            // Commit-on-Climb: If user cancels recording an ascent for an uncommitted custom mountain, discard it!
+                            PeaksViewModel.shared?.discardStagedMountainIfNeeded(mountain)
+                        }
+                        dismiss()
+                    }
+                    .disabled(viewModel.isSaving)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        viewModel.submitLog(for: mountain.id)
+                        viewModel.submitLog(for: mountain, editingLog: logToEdit) { updatedLog in
+                            onSave?(updatedLog)
+                        }
                     } label: {
                         if viewModel.isSaving {
                             ProgressView()
@@ -66,11 +77,15 @@ struct HikeLogCreationView: View {
                 if success { dismiss() }
             }
             .onAppear {
-                if viewModel.trailDifficulty.isEmpty {
-                    viewModel.trailDifficulty = mountain.difficultyLevel
-                }
-                if viewModel.trailClass.isEmpty {
-                    viewModel.trailClass = mountain.trailClass
+                if let existing = logToEdit {
+                    viewModel.setupForEditing(log: existing)
+                } else {
+                    if viewModel.trailDifficulty.isEmpty {
+                        viewModel.trailDifficulty = mountain.difficultyLevel
+                    }
+                    if viewModel.trailClass.isEmpty {
+                        viewModel.trailClass = mountain.trailClass
+                    }
                 }
             }
             .sheet(isPresented: $showProPaywall) {
@@ -419,17 +434,45 @@ struct HikeLogCreationView: View {
                 Text("Climb Photos")
                     .font(.headline)
                 Spacer()
-                Text("\(viewModel.selectedImages.count)/3 Max")
+                Text("\(viewModel.totalPhotosCount)/50 Max")
                     .font(.caption)
                     .fontWeight(.bold)
-                    .foregroundColor(viewModel.selectedImages.count == 3 ? .orange : .secondary)
+                    .foregroundColor(viewModel.totalPhotosCount >= 50 ? .orange : .secondary)
             }
             .padding(.horizontal)
             
             VStack(spacing: 16) {
-                if !viewModel.selectedImages.isEmpty {
+                if viewModel.totalPhotosCount > 0 {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
+                            ForEach(Array(viewModel.existingPhotoUrls.enumerated()), id: \.offset) { index, urlString in
+                                ZStack(alignment: .topTrailing) {
+                                    CachedAsyncImage(url: URL(string: urlString)) { phase in
+                                        switch phase {
+                                        case .success(let image):
+                                            image.resizable().scaledToFill()
+                                        default:
+                                            Color.secondary.opacity(0.1)
+                                        }
+                                    }
+                                    .frame(width: 100, height: 100)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 2)
+                                    
+                                    Button {
+                                        withAnimation {
+                                            viewModel.removeExistingImage(at: index)
+                                        }
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.title3)
+                                            .foregroundColor(.white)
+                                            .background(Circle().fill(Color.black.opacity(0.6)).frame(width: 20, height: 20))
+                                    }
+                                    .padding(6)
+                                }
+                            }
+                            
                             ForEach(Array(viewModel.selectedImages.enumerated()), id: \.offset) { index, uiImage in
                                 ZStack(alignment: .topTrailing) {
                                     Image(uiImage: uiImage)
@@ -457,17 +500,17 @@ struct HikeLogCreationView: View {
                     }
                 }
                 
-                if viewModel.selectedImages.count < 3 {
+                if viewModel.totalPhotosCount < 50 {
                     PhotosPicker(
                         selection: $viewModel.selectedPhotos,
-                        maxSelectionCount: 3,
+                        maxSelectionCount: max(1, 50 - viewModel.existingPhotoUrls.count),
                         matching: .images,
                         photoLibrary: .shared()
                     ) {
                         HStack(spacing: 10) {
                             Image(systemName: "photo.badge.plus")
                                 .font(.title3)
-                            Text(viewModel.selectedImages.isEmpty ? "Add Photos (Max 3)" : "Change / Add Photos")
+                            Text(viewModel.totalPhotosCount == 0 ? "Add Photos (Max 50)" : "Change / Add Photos")
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                         }
@@ -476,7 +519,7 @@ struct HikeLogCreationView: View {
                         .padding(.vertical, 14)
                         .background(Color.emeraldGreen.opacity(0.12))
                         .cornerRadius(12)
-                        .padding(.horizontal, viewModel.selectedImages.isEmpty ? 0 : 8)
+                        .padding(.horizontal, viewModel.totalPhotosCount == 0 ? 0 : 8)
                     }
                     .onChange(of: viewModel.selectedPhotos) { _, _ in
                         Task {
@@ -520,4 +563,5 @@ struct HikeLogCreationView: View {
         difficultyLevel: "3/9",
         trailClass: "Class 1-2"
     ))
+    .environmentObject(AuthViewModel())
 }

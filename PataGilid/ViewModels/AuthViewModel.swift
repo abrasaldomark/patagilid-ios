@@ -24,6 +24,13 @@ class AuthViewModel: ObservableObject {
         return currentUser != nil
     }
     
+    /// Determines whether the current authenticated user has administrative moderation superpowers.
+    var isAdmin: Bool {
+        guard let email = currentUser?.email?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) else { return false }
+        let adminEmails: Set<String> = ["markabrasaldo@gmail.com", "mark.abrasaldo@gmail.com", "hustlas4ever@gmail.com"]
+        return adminEmails.contains(email) || email.hasSuffix("@patagilid.com")
+    }
+    
     var userDisplayName: String {
         return currentUser?.displayName ?? currentUser?.email ?? "Mountaineer"
     }
@@ -47,6 +54,10 @@ class AuthViewModel: ObservableObject {
         authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] (_, user) in
             Task { @MainActor in
                 self?.currentUser = user
+                if self?.isAdmin == true {
+                    UserDefaults.standard.set(true, forKey: "isPataGilidPro")
+                    print("👑 [AuthViewModel] Admin account verified! PataGilid Pro superpowers automatically unlocked.")
+                }
             }
         }
     }
@@ -67,7 +78,14 @@ class AuthViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { [weak self] signInResult, error in
+        GIDSignIn.sharedInstance.signIn(
+            withPresenting: rootViewController,
+            hint: nil,
+            additionalScopes: [
+                "https://www.googleapis.com/auth/drive.appdata",
+                "https://www.googleapis.com/auth/drive.file"
+            ]
+        ) { [weak self] signInResult, error in
             guard let self = self else { return }
             
             if let error = error {
@@ -101,6 +119,24 @@ class AuthViewModel: ObservableObject {
                     } else {
                         print("✅ Successfully authenticated user: \(authResult?.user.uid ?? "Unknown")")
                     }
+                }
+            }
+        }
+    }
+    
+    /// Retrievably refreshes and returns a valid Google OAuth access token for Google Drive REST calls.
+    func getValidAccessToken() async throws -> String {
+        guard let gidUser = GIDSignIn.sharedInstance.currentUser else {
+            throw NSError(domain: "AuthViewModel", code: 401, userInfo: [NSLocalizedDescriptionKey: "No active Google sign-in session found."])
+        }
+        return try await withCheckedThrowingContinuation { continuation in
+            gidUser.refreshTokensIfNeeded { user, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let token = user?.accessToken.tokenString {
+                    continuation.resume(returning: token)
+                } else {
+                    continuation.resume(throwing: NSError(domain: "AuthViewModel", code: 500, userInfo: [NSLocalizedDescriptionKey: "Unable to refresh Google access token."]))
                 }
             }
         }

@@ -19,16 +19,16 @@ struct PeakDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 // Header Hero Box
-                ZStack(alignment: .bottomLeading) {
+                ZStack {
                     MountainHeaderImageView(mountain: mountain, isThumbnail: false)
                     
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text(mountain.islandGroup.rawValue)
-                                .font(.caption)
-                                .fontWeight(.black)
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Top Badges
+                        HStack(spacing: 8) {
+                            Text(mountain.islandGroup.rawValue.uppercased())
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
                                 .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
+                                .padding(.vertical, 5)
                                 .background(Color.emeraldGreen)
                                 .foregroundColor(.black)
                                 .clipShape(Capsule())
@@ -36,39 +36,49 @@ struct PeakDetailView: View {
                             if !mountain.isPubliclyApproved {
                                 HStack(spacing: 4) {
                                     Image(systemName: "clock.badge.fill")
+                                        .font(.system(size: 11, weight: .bold))
                                     Text("Pending Review")
+                                        .font(.system(size: 11, weight: .bold))
                                 }
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
                                 .background(Color.orange)
                                 .foregroundColor(.white)
                                 .clipShape(Capsule())
                             }
                             
                             Spacer()
-                            
-                            Text("\(mountain.elevationMASL) MASL")
-                                .font(.system(size: 20, weight: .heavy, design: .monospaced))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.black.opacity(0.6))
-                                .clipShape(Capsule())
                         }
                         
-                        Text(mountain.name)
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
+                        Spacer()
                         
-                        HStack(spacing: 6) {
-                            Image(systemName: "mappin.and.ellipse")
-                                .foregroundColor(.red)
-                            Text(mountain.region)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.white.opacity(0.9))
+                        // Bottom Title & Specifications Stack
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(mountain.name)
+                                .font(.system(size: 32, weight: .heavy, design: .rounded))
+                                .foregroundColor(.white)
+                                .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                            
+                            VStack(alignment: .leading, spacing: 5) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "triangle.tophalf.filled")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(Color.emeraldGreen)
+                                    Text("\(mountain.elevationMASL) MASL")
+                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                        .foregroundColor(.white)
+                                }
+                                
+                                HStack(spacing: 6) {
+                                    Image(systemName: "mappin.circle.fill")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(Color.emeraldGreen)
+                                    Text(mountain.region)
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.9))
+                                        .lineLimit(1)
+                                }
+                            }
                         }
                     }
                     .padding(20)

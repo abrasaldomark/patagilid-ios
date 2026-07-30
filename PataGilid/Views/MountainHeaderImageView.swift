@@ -60,15 +60,15 @@ struct MountainHeaderImageView: View {
                 Color.secondary.opacity(0.15)
             } else {
                 LinearGradient(
-                    colors: [.black.opacity(0.85), .teal.opacity(0.5), .black.opacity(0.9)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+                    colors: [Color(red: 0.15, green: 0.19, blue: 0.22), Color(red: 0.08, green: 0.10, blue: 0.12)],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
             }
             
             Image(systemName: "mountain.2.fill")
-                .font(.system(size: isThumbnail ? 22 : 64, weight: .medium))
-                .foregroundColor(isThumbnail ? .secondary : .white.opacity(0.35))
+                .font(.system(size: isThumbnail ? 22 : 84, weight: .medium))
+                .foregroundColor(isThumbnail ? .secondary : .white.opacity(0.08))
         }
     }
     

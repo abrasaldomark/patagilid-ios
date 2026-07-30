@@ -148,12 +148,6 @@ struct PeaksListView: View {
                         }
                     }
                     .listStyle(.plain)
-                    .refreshable {
-                        let updated = await MountainDataSeeder.shared.fetchLatestCatalogFromFirebase()
-                        if updated {
-                            viewModel.refreshCombinedPeaks()
-                        }
-                    }
                 }
             }
             .searchable(text: $viewModel.searchText, prompt: "Search by Name, Region (e.g. Region 6), or Details")

@@ -23,6 +23,19 @@ class MountainDataSeeder {
         return cachesDirectory.appendingPathComponent("philippine_mountains_firebase_cache.json")
     }
     
+    // MARK: - 48-Hour Sync Throttling & Caching
+    private let lastSyncTimestampKey = "lastMountainCatalogSyncTimestamp"
+    private let lastETagKey = "lastMountainCatalogETag"
+    private let syncThrottleInterval: TimeInterval = 48 * 60 * 60 // 48 Hours in seconds
+    
+    private func shouldPerformCatalogSync(force: Bool) -> Bool {
+        if force { return true }
+        let lastSync = UserDefaults.standard.double(forKey: lastSyncTimestampKey)
+        let now = Date().timeIntervalSince1970
+        // Trigger if last sync was more than 48 hours ago, or if timestamp has not been recorded yet (0.0)
+        return (now - lastSync) >= syncThrottleInterval || lastSync == 0
+    }
+    
     /// Loads the exhaustive catalog of Philippine mountains, prioritizing any freshly updated dataset downloaded from Firebase Cloud,
     /// falling back seamlessly to the default offline bundle if offline or on initial launch.
     var officialMountains: [Mountain] {
@@ -53,14 +66,40 @@ class MountainDataSeeder {
     }
     
     /// Asynchronously downloads the latest authoritative Philippine mountain JSON from Google Firebase Cloud CDN.
+    /// Uses a 48-hour timestamp throttle and HTTP ETag validation to prevent unnecessary bandwidth consumption or network timeouts in remote hiking areas.
     /// Validates decoding before atomically replacing the local disk cache. Returns `true` if a newer dataset was applied.
-    func fetchLatestCatalogFromFirebase() async -> Bool {
+    func fetchLatestCatalogFromFirebase(force: Bool = false) async -> Bool {
         guard let url = URL(string: firebaseCloudURLString) else { return false }
+        
+        guard shouldPerformCatalogSync(force: force) else {
+            let lastSync = Date(timeIntervalSince1970: UserDefaults.standard.double(forKey: lastSyncTimestampKey))
+            print("⏸️ Catalog sync throttled (Last checked on \(lastSync.formatted(date: .abbreviated, time: .shortened))). Next check available after 48 hours.")
+            return false
+        }
+        
         do {
             print("🌐 Checking Google Firebase Cloud for mountain catalog updates...")
-            let (data, response) = try await URLSession.shared.data(from: url)
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                print("⚠️ Firebase Cloud response non-200. Maintaining existing offline catalog.")
+            var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15.0)
+            if let savedETag = UserDefaults.standard.string(forKey: lastETagKey),
+               FileManager.default.fileExists(atPath: cacheFileURL.path) {
+                request.setValue(savedETag, forHTTPHeaderField: "If-None-Match")
+            }
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                print("⚠️ Firebase Cloud response invalid. Maintaining existing offline catalog.")
+                return false
+            }
+            
+            // 304 Not Modified means the catalog on Firebase is identical to our disk cache
+            if httpResponse.statusCode == 304 {
+                print("⚡️ Firebase Cloud returned 304 Not Modified. Existing offline catalog is completely up-to-date!")
+                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastSyncTimestampKey)
+                return false
+            }
+            
+            guard httpResponse.statusCode == 200 else {
+                print("⚠️ Firebase Cloud response non-200 (\(httpResponse.statusCode)). Maintaining existing offline catalog.")
                 return false
             }
             
@@ -71,9 +110,15 @@ class MountainDataSeeder {
                 return false
             }
             
+            // Save updated timestamp and ETag
+            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastSyncTimestampKey)
+            if let newETag = httpResponse.allHeaderFields["Etag"] as? String ?? httpResponse.allHeaderFields["ETag"] as? String {
+                UserDefaults.standard.set(newETag, forKey: lastETagKey)
+            }
+            
             // Check if identical to what we already have cached on disk to avoid redundant UI reloads
             if let currentCachedData = try? Data(contentsOf: cacheFileURL), currentCachedData == data {
-                print("✅ Firebase Cloud catalog matches cached version (\(freshlyDecoded.count) peaks). No UI update needed.")
+                print("✅ Firebase Cloud catalog content matches cached version (\(freshlyDecoded.count) peaks). No UI reload needed.")
                 return false
             }
             
@@ -82,7 +127,7 @@ class MountainDataSeeder {
             print("🎉 Successfully downloaded and cached updated catalog of \(freshlyDecoded.count) mountains from Google Firebase Cloud!")
             return true
         } catch {
-            print("🌐 Firebase Cloud sync paused (Offline or network unreachable): \(error.localizedDescription)")
+            print("🌐 Firebase Cloud sync deferred (Offline, weak cellular signal, or network unreachable): \(error.localizedDescription)")
             return false
         }
     }

@@ -15,6 +15,18 @@ enum IslandGroup: String, Codable, CaseIterable, Identifiable {
     case mindanao = "Mindanao"
     
     var id: String { rawValue }
+    
+    var systemImageName: String? {
+        return nil
+    }
+    
+    var assetImageName: String? {
+        switch self {
+        case .luzon: return "luzon_icon"
+        case .visayas: return "visayas_icon"
+        case .mindanao: return "mindanao_icon"
+        }
+    }
 }
 
 /// Represents a Philippine mountain peak reference entity stored in Cloud Firestore (`mountains` collection).

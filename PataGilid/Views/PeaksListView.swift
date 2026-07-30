@@ -58,12 +58,12 @@ struct PeaksListView: View {
                 // Island Group Filter Bar
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        FilterPill(title: "All (\(viewModel.publicPeaks.count))", isSelected: viewModel.selectedIslandGroup == nil && viewModel.selectedRegion == nil) {
+                        FilterPill(title: "All (\(viewModel.publicPeaks.count))", assetImage: "philippines_icon", isSelected: viewModel.selectedIslandGroup == nil && viewModel.selectedRegion == nil) {
                             viewModel.resetFilters()
                         }
                         
                         ForEach(IslandGroup.allCases) { group in
-                            FilterPill(title: group.rawValue, isSelected: viewModel.selectedIslandGroup == group) {
+                            FilterPill(title: group.rawValue, systemImage: group.systemImageName, assetImage: group.assetImageName, isSelected: viewModel.selectedIslandGroup == group) {
                                 viewModel.selectIslandGroup(group)
                             }
                         }
@@ -239,12 +239,26 @@ struct PeaksListView: View {
 
 struct FilterPill: View {
     let title: String
+    var systemImage: String? = nil
+    var assetImage: String? = nil
     let isSelected: Bool
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
-            Text(title)
+            HStack(spacing: 5) {
+                if let systemImage = systemImage {
+                    Image(systemName: systemImage)
+                        .font(.caption2)
+                } else if let assetImage = assetImage {
+                    Image(assetImage)
+                        .resizable()
+                        .renderingMode(.template)
+                        .scaledToFit()
+                        .frame(width: 13, height: 13)
+                }
+                Text(title)
+            }
                 .font(.caption)
                 .fontWeight(isSelected ? .bold : .semibold)
                 .padding(.horizontal, 14)

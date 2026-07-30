@@ -156,14 +156,14 @@ struct SummitLogsView: View {
             // Island Group Filter Bar
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    FilterPill(title: "All (\(viewModel.logs.count))", isSelected: viewModel.selectedIslandGroup == nil && viewModel.selectedRegion == nil && viewModel.selectedOutcome == .all) {
+                    FilterPill(title: "All (\(viewModel.logs.count))", assetImage: "philippines_icon", isSelected: viewModel.selectedIslandGroup == nil && viewModel.selectedRegion == nil && viewModel.selectedOutcome == .all) {
                         withAnimation(.easeInOut) {
                             viewModel.resetFilters()
                         }
                     }
                     
                     ForEach(IslandGroup.allCases) { group in
-                        FilterPill(title: group.rawValue, isSelected: viewModel.selectedIslandGroup == group) {
+                        FilterPill(title: group.rawValue, systemImage: group.systemImageName, assetImage: group.assetImageName, isSelected: viewModel.selectedIslandGroup == group) {
                             viewModel.selectIslandGroup(group)
                         }
                     }

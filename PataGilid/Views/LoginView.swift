@@ -13,27 +13,36 @@ struct LoginView: View {
     
     var body: some View {
         ZStack {
-            // Sleek Dark Mountain Gradient Background
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.08, green: 0.12, blue: 0.18),
-                    Color(red: 0.05, green: 0.07, blue: 0.10),
-                    Color.black
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Clean dynamic background consistent with Onboarding & Main App Views
+            Color(uiColor: .systemGroupedBackground)
+                .ignoresSafeArea()
             
-            VStack(spacing: 32) {
+            // Subtle theme decorative accent gradient at the top
+            VStack {
+                RadialGradient(
+                    gradient: Gradient(colors: [Color.gliderBlue.opacity(0.25), Color.clear]),
+                    center: .top,
+                    startRadius: 20,
+                    endRadius: 320
+                )
+                .frame(height: 380)
+                .ignoresSafeArea()
+                Spacer()
+            }
+            
+            VStack(spacing: 36) {
                 Spacer()
                 
                 // Branding & Icon
                 VStack(spacing: 16) {
                     ZStack {
                         Circle()
-                            .fill(Color.gliderBlue.opacity(0.15))
-                            .frame(width: 110, height: 110)
+                            .fill(Color.gliderBlue.opacity(0.12))
+                            .frame(width: 120, height: 120)
+                        
+                        Circle()
+                            .stroke(Color.gliderBlue.opacity(0.3), lineWidth: 2)
+                            .frame(width: 120, height: 120)
                         
                         Image(systemName: "mountain.2.fill")
                             .resizable()
@@ -43,45 +52,49 @@ struct LoginView: View {
                                 LinearGradient(colors: [.gliderBlue, .summitSteel], startPoint: .top, endPoint: .bottom)
                             )
                     }
+                    .shadow(color: Color.gliderBlue.opacity(0.25), radius: 12, x: 0, y: 6)
                     
-                    Text("PataGilid")
-                        .font(.system(size: 42, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white)
-                        .tracking(1.5)
-                    
-                    Text("Your Guide to 2,313 Philippine Peaks")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.gray)
+                    VStack(spacing: 6) {
+                        Text("PataGilid")
+                            .font(.system(size: 42, weight: .heavy, design: .rounded))
+                            .foregroundColor(.primary)
+                            .tracking(1.2)
+                        
+                        Text("Your Guide to 2,313 Philippine Peaks")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.summitSteel)
+                    }
                 }
                 
                 Spacer()
                 
                 // Account Requirement Banner & Action Box
-                VStack(spacing: 20) {
-                    VStack(spacing: 10) {
+                VStack(spacing: 22) {
+                    VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 8) {
                             Image(systemName: "lock.shield.fill")
-                                .foregroundColor(.summitSteel)
-                            Text("Account Required for Climbing Logs")
+                                .foregroundColor(.gliderBlue)
+                                .font(.headline)
+                            Text("Account Required for Climb Logs")
                                 .font(.footnote)
                                 .fontWeight(.bold)
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                         }
                         
                         Text("A verified Google account is required to securely back up your summit progress, photos, and hiking achievements across devices.")
                             .font(.caption)
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 16)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(.vertical, 16)
-                    .background(Color.white.opacity(0.05))
-                    .cornerRadius(12)
+                    .padding(18)
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .cornerRadius(16)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.summitSteel.opacity(0.3), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.gliderBlue.opacity(0.25), lineWidth: 1.5)
                     )
+                    .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 4)
                     .padding(.horizontal, 24)
                     
                     // Google Sign-In Action Button
@@ -91,7 +104,7 @@ struct LoginView: View {
                         HStack(spacing: 12) {
                             if authViewModel.isLoading {
                                 ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .black))
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
                                 Image(systemName: "g.circle.fill")
                                     .font(.title2)
@@ -101,23 +114,32 @@ struct LoginView: View {
                                 .font(.headline)
                                 .fontWeight(.bold)
                         }
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.white)
-                        .cornerRadius(14)
-                        .shadow(color: Color.white.opacity(0.15), radius: 10, x: 0, y: 5)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity, minHeight: 54, maxHeight: 54)
+                        .background(
+                            LinearGradient(
+                                colors: [.gliderBlue, .summitSteel],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(16)
+                        .shadow(color: Color.gliderBlue.opacity(0.35), radius: 10, x: 0, y: 5)
                     }
                     .disabled(authViewModel.isLoading)
                     .padding(.horizontal, 24)
                 }
                 
                 if let errorMessage = authViewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.red)
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
                 }
                 
                 Spacer().frame(height: 24)

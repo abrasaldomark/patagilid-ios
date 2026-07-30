@@ -18,6 +18,7 @@ struct SummitLogDetailView: View {
     @State private var isShowingPhotoGallery: Bool = false
     @State private var isShowingEditModal: Bool = false
     @State private var isShowingDeleteConfirm: Bool = false
+    @State private var showingInternalMap: Bool = false
     
     init(log: HikeLog, mountain: Mountain?) {
         _log = State(initialValue: log)
@@ -65,6 +66,11 @@ struct SummitLogDetailView: View {
             )
             HikeLogCreationView(mountain: targetMountain, logToEdit: log) { updatedLog in
                 self.log = updatedLog
+            }
+        }
+        .sheet(isPresented: $showingInternalMap) {
+            if let mountain {
+                MountainMapView(mountain: mountain)
             }
         }
     }
@@ -117,8 +123,20 @@ struct SummitLogDetailView: View {
                     detailRow(icon: "globe.asia.australia.fill", iconColor: .blue,
                               label: "Island Group", value: mountain.islandGroup.rawValue)
                     Divider().padding(.leading, 40)
-                    detailRow(icon: "location.circle.fill", iconColor: .gliderBlue,
-                              label: "Coordinates", value: String(format: "%.4f, %.4f", mountain.latitude, mountain.longitude))
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        showingInternalMap = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            detailRow(icon: "location.circle.fill", iconColor: .gliderBlue,
+                                      label: "Coordinates", value: String(format: "%.4f, %.4f", mountain.latitude, mountain.longitude))
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.gliderBlue)
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             

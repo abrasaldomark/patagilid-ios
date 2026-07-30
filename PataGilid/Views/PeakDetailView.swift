@@ -15,8 +15,8 @@ struct PeakDetailView: View {
     /// Regenerated on every toolbar tap to guarantee a fresh @StateObject in the sheet.
     @State private var logSessionId = UUID()
     
-    @AppStorage("preferredMapApp") private var preferredMapApp: String = "unset"
     @State private var showingMapOptions: Bool = false
+    @State private var showingInternalMap: Bool = false
     @State private var showCopiedToast: Bool = false
     
     var body: some View {
@@ -152,45 +152,31 @@ struct PeakDetailView: View {
                 .id(logSessionId)
                 .environmentObject(authViewModel)
         }
+        .sheet(isPresented: $showingInternalMap) {
+            MountainMapView(mountain: mountain)
+        }
         .onDisappear {
             if !showingLogModal {
                 // Commit-on-Climb: Evaporate uncommitted staged peak if user navigates away without recording an ascent
                 PeaksViewModel.shared?.discardStagedMountainIfNeeded(mountain)
             }
         }
-        .confirmationDialog("Map Navigation Options", isPresented: $showingMapOptions, titleVisibility: .visible) {
-            Button("Open in Apple Maps") {
-                if preferredMapApp == "unset" {
-                    preferredMapApp = "apple"
-                }
-                openAppleMaps()
-            }
-            
-            Button("Open in Google Maps") {
-                if preferredMapApp == "unset" {
-                    preferredMapApp = "google"
-                }
-                openGoogleMaps()
-            }
-            
+        .confirmationDialog("More Coordinate Options", isPresented: $showingMapOptions, titleVisibility: .visible) {
             Button("Copy Coordinates to Clipboard") {
                 copyCoordinates()
             }
             
-            if preferredMapApp != "unset" {
-                Button("Reset Default Map App", role: .destructive) {
-                    preferredMapApp = "unset"
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                }
+            Button("Open in Apple Maps") {
+                openAppleMaps()
+            }
+            
+            Button("Open in Google Maps") {
+                openGoogleMaps()
             }
             
             Button("Cancel", role: .cancel) { }
         } message: {
-            if preferredMapApp != "unset" {
-                Text("Current Default: \(preferredMapApp == "apple" ? "Apple Maps" : "Google Maps"). Hold (long press) coordinates anytime to change settings or copy.")
-            } else {
-                Text("Select your preferred navigation app for driving directions and satellite terrain.")
-            }
+            Text("Tap coordinates directly to view in MapKit, or hold here for external directions & clipboard copy.")
         }
         .overlay(
             Group {
@@ -227,13 +213,7 @@ struct PeakDetailView: View {
     
     private func handleCoordinateTap() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        if preferredMapApp == "apple" {
-            openAppleMaps()
-        } else if preferredMapApp == "google" {
-            openGoogleMaps()
-        } else {
-            showingMapOptions = true
-        }
+        showingInternalMap = true
     }
     
     private func openAppleMaps() {

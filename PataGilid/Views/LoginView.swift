@@ -154,6 +154,11 @@ extension Color {
     static let summitSteel = Color(red: 0.58, green: 0.64, blue: 0.72)
 }
 
+extension ShapeStyle where Self == Color {
+    static var gliderBlue: Color { .gliderBlue }
+    static var summitSteel: Color { .summitSteel }
+}
+
 #Preview {
     LoginView(authViewModel: AuthViewModel())
 }

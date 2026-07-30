@@ -71,7 +71,7 @@ struct MainTabView: View {
                         Section(header: Text("Administrator Control Center"), footer: Text("As a verified PataGilid administrator, you can moderate, approve, or merge crowdsourced local mountains before they appear in the nationwide public catalog.")) {
                             HStack {
                                 Image(systemName: "shield.checkmark.fill")
-                                    .foregroundColor(.emeraldGreen)
+                                    .foregroundColor(.summitSteel)
                                     .font(.title2)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Super Admin Mode Active")
@@ -141,7 +141,7 @@ struct MainTabView: View {
             }
             .tag(2)
         }
-        .tint(.teal)
+        .tint(.gliderBlue)
         .environmentObject(authViewModel)
         .environmentObject(peaksViewModel)
         .sheet(isPresented: $showAdminQueue) {

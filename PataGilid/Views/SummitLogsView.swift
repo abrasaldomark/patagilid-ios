@@ -36,12 +36,12 @@ struct SummitLogsView: View {
                         HStack(spacing: 12) {
                             HStack(spacing: 4) {
                                 Image(systemName: "checkmark.seal.fill")
-                                    .foregroundColor(.emeraldGreen)
+                                    .foregroundColor(.gliderBlue)
                                     .font(.caption)
                                 Text("\(viewModel.logs.filter { $0.didSummit }.count) summited")
                                     .font(.caption)
                                     .fontWeight(.bold)
-                                    .foregroundColor(.emeraldGreen)
+                                    .foregroundColor(.gliderBlue)
                             }
                             
                             Menu {
@@ -92,7 +92,7 @@ struct SummitLogsView: View {
                             } label: {
                                 Image(systemName: "line.3.horizontal.decrease.circle.fill")
                                     .font(.title3)
-                                    .foregroundColor(.emeraldGreen)
+                                    .foregroundColor(.gliderBlue)
                             }
                         }
                     }
@@ -107,7 +107,7 @@ struct SummitLogsView: View {
         VStack(spacing: 12) {
             ProgressView()
                 .scaleEffect(1.3)
-                .tint(.emeraldGreen)
+                .tint(.gliderBlue)
             Text("Loading your logs...")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
@@ -131,9 +131,9 @@ struct SummitLogsView: View {
         VStack(spacing: 20) {
             Image(systemName: "mountain.2")
                 .font(.system(size: 64))
-                .foregroundColor(.emeraldGreen.opacity(0.5))
+                .foregroundColor(.gliderBlue.opacity(0.5))
                 .padding()
-                .background(Color.emeraldGreen.opacity(0.1))
+                .background(Color.gliderBlue.opacity(0.1))
                 .clipShape(Circle())
             
             VStack(spacing: 8) {
@@ -177,7 +177,7 @@ struct SummitLogsView: View {
                             .padding(.vertical, 6)
                             .background(
                                 viewModel.selectedQuickFilter == tag ?
-                                Color.emeraldGreen : Color.secondary.opacity(0.12)
+                                Color.gliderBlue : Color.secondary.opacity(0.12)
                             )
                             .clipShape(Capsule())
                         }
@@ -215,8 +215,8 @@ struct SummitLogsView: View {
                         .fontWeight(.bold)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .background(Color.emeraldGreen.opacity(0.2))
-                        .foregroundColor(.emeraldGreen)
+                        .background(Color.gliderBlue.opacity(0.2))
+                        .foregroundColor(.gliderBlue)
                         .clipShape(Capsule())
                         .onTapGesture {
                             viewModel.selectedOutcome = .all
@@ -273,7 +273,7 @@ struct SummitLogsView: View {
                     }
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundColor(.emeraldGreen)
+                    .foregroundColor(.gliderBlue)
                     Spacer()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -321,7 +321,7 @@ struct SummitLogRow: View {
                     if let elev = mountain?.elevationMASL {
                         Text("\(elev) MASL")
                             .fontWeight(.semibold)
-                            .foregroundColor(.teal)
+                            .foregroundColor(.summitSteel)
                         Text("·").foregroundColor(.secondary)
                     }
                     Text(log.dateTimeStart, format: .dateTime.day().month(.abbreviated).year())
@@ -379,11 +379,11 @@ struct SummitLogRow: View {
     private var outcomeIcon: some View {
         ZStack {
             Circle()
-                .fill(log.didSummit ? Color.emeraldGreen.opacity(0.12) : Color.red.opacity(0.10))
+                .fill(log.didSummit ? Color.gliderBlue.opacity(0.12) : Color.red.opacity(0.10))
                 .frame(width: 44, height: 44)
             Image(systemName: log.didSummit ? "mountain.2.fill" : "arrow.uturn.backward.circle.fill")
                 .font(.system(size: 18))
-                .foregroundColor(log.didSummit ? .emeraldGreen : .red)
+                .foregroundColor(log.didSummit ? .gliderBlue : .red)
         }
     }
     
@@ -392,10 +392,10 @@ struct SummitLogRow: View {
             .font(.caption2)
             .fontWeight(.black)
             .tracking(0.5)
-            .foregroundColor(log.didSummit ? .emeraldGreen : .red)
+            .foregroundColor(log.didSummit ? .gliderBlue : .red)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .background(log.didSummit ? Color.emeraldGreen.opacity(0.1) : Color.red.opacity(0.08))
+            .background(log.didSummit ? Color.gliderBlue.opacity(0.1) : Color.red.opacity(0.08))
             .clipShape(Capsule())
     }
 }

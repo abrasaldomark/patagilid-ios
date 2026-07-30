@@ -32,7 +32,7 @@ struct LoginView: View {
                 VStack(spacing: 16) {
                     ZStack {
                         Circle()
-                            .fill(Color.emeraldGreen.opacity(0.15))
+                            .fill(Color.gliderBlue.opacity(0.15))
                             .frame(width: 110, height: 110)
                         
                         Image(systemName: "mountain.2.fill")
@@ -40,7 +40,7 @@ struct LoginView: View {
                             .scaledToFit()
                             .frame(width: 64, height: 64)
                             .foregroundStyle(
-                                LinearGradient(colors: [.green, .teal], startPoint: .top, endPoint: .bottom)
+                                LinearGradient(colors: [.gliderBlue, .summitSteel], startPoint: .top, endPoint: .bottom)
                             )
                     }
                     
@@ -62,7 +62,7 @@ struct LoginView: View {
                     VStack(spacing: 10) {
                         HStack(spacing: 8) {
                             Image(systemName: "lock.shield.fill")
-                                .foregroundColor(.teal)
+                                .foregroundColor(.summitSteel)
                             Text("Account Required for Climbing Logs")
                                 .font(.footnote)
                                 .fontWeight(.bold)
@@ -80,7 +80,7 @@ struct LoginView: View {
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.teal.opacity(0.3), lineWidth: 1)
+                            .stroke(Color.summitSteel.opacity(0.3), lineWidth: 1)
                     )
                     .padding(.horizontal, 24)
                     
@@ -128,7 +128,8 @@ struct LoginView: View {
 
 // Custom Accent Helper for the Theme
 extension Color {
-    static let emeraldGreen = Color(red: 0.16, green: 0.73, blue: 0.53)
+    static let gliderBlue = Color(red: 0.23, green: 0.51, blue: 0.96)
+    static let summitSteel = Color(red: 0.58, green: 0.64, blue: 0.72)
 }
 
 #Preview {

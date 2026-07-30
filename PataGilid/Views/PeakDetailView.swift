@@ -15,6 +15,10 @@ struct PeakDetailView: View {
     /// Regenerated on every toolbar tap to guarantee a fresh @StateObject in the sheet.
     @State private var logSessionId = UUID()
     
+    @AppStorage("preferredMapApp") private var preferredMapApp: String = "unset"
+    @State private var showingMapOptions: Bool = false
+    @State private var showCopiedToast: Bool = false
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -29,8 +33,8 @@ struct PeakDetailView: View {
                                 .font(.system(size: 11, weight: .bold, design: .rounded))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 5)
-                                .background(Color.emeraldGreen)
-                                .foregroundColor(.black)
+                                .background(Color.gliderBlue)
+                                .foregroundColor(.white)
                                 .clipShape(Capsule())
                             
                             if !mountain.isPubliclyApproved {
@@ -63,7 +67,7 @@ struct PeakDetailView: View {
                                 HStack(spacing: 6) {
                                     Image(systemName: "triangle.tophalf.filled")
                                         .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(Color.emeraldGreen)
+                                        .foregroundColor(Color.summitSteel)
                                     Text("\(mountain.elevationMASL) MASL")
                                         .font(.system(size: 14, weight: .bold, design: .rounded))
                                         .foregroundColor(.white)
@@ -72,7 +76,7 @@ struct PeakDetailView: View {
                                 HStack(spacing: 6) {
                                     Image(systemName: "mappin.circle.fill")
                                         .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(Color.emeraldGreen)
+                                        .foregroundColor(Color.gliderBlue)
                                     Text(mountain.region)
                                         .font(.system(size: 13, weight: .medium))
                                         .foregroundColor(.white.opacity(0.9))
@@ -92,10 +96,23 @@ struct PeakDetailView: View {
                         .foregroundColor(.primary)
                     
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                        SpecCard(title: "Difficulty", value: mountain.difficultyLevel, icon: "gauge.medium", color: .orange)
-                        SpecCard(title: "Trail Class", value: mountain.trailClass, icon: "figure.hiking", color: .green)
-                        SpecCard(title: "Latitude", value: String(format: "%.4f° N", mountain.latitude), icon: "location.north.circle.fill", color: .teal)
-                        SpecCard(title: "Longitude", value: String(format: "%.4f° E", mountain.longitude), icon: "globe.asia.australia.fill", color: .blue)
+                        SpecCard(title: "Difficulty", value: mountain.difficultyLevel, icon: "gauge.medium", color: .gliderBlue)
+                        SpecCard(title: "Trail Class", value: mountain.trailClass, icon: "figure.hiking", color: .summitSteel)
+                    }
+                    
+                    SpecCard(
+                        title: "Coordinates",
+                        value: String(format: "%.4f, %.4f", mountain.latitude, mountain.longitude),
+                        icon: "location.circle.fill",
+                        color: .gliderBlue,
+                        isInteractive: true
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        handleCoordinateTap()
+                    }
+                    .onLongPressGesture {
+                        showingMapOptions = true
                     }
                 }
                 
@@ -141,17 +158,130 @@ struct PeakDetailView: View {
                 PeaksViewModel.shared?.discardStagedMountainIfNeeded(mountain)
             }
         }
+        .confirmationDialog("Map Navigation Options", isPresented: $showingMapOptions, titleVisibility: .visible) {
+            Button("Open in Apple Maps") {
+                if preferredMapApp == "unset" {
+                    preferredMapApp = "apple"
+                }
+                openAppleMaps()
+            }
+            
+            Button("Open in Google Maps") {
+                if preferredMapApp == "unset" {
+                    preferredMapApp = "google"
+                }
+                openGoogleMaps()
+            }
+            
+            Button("Copy Coordinates to Clipboard") {
+                copyCoordinates()
+            }
+            
+            if preferredMapApp != "unset" {
+                Button("Reset Default Map App", role: .destructive) {
+                    preferredMapApp = "unset"
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                }
+            }
+            
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            if preferredMapApp != "unset" {
+                Text("Current Default: \(preferredMapApp == "apple" ? "Apple Maps" : "Google Maps"). Hold (long press) coordinates anytime to change settings or copy.")
+            } else {
+                Text("Select your preferred navigation app for driving directions and satellite terrain.")
+            }
+        }
+        .overlay(
+            Group {
+                if showCopiedToast {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.gliderBlue)
+                        Text("Coordinates Copied!")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color(.systemBackground).opacity(0.95))
+                    .foregroundColor(.primary)
+                    .clipShape(Capsule())
+                    .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                showCopiedToast = false
+                            }
+                        }
+                    }
+                    .padding(.bottom, 30)
+                }
+            },
+            alignment: .bottom
+        )
+    }
+    
+    // MARK: - Map Jumping Helpers
+    
+    private func handleCoordinateTap() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        if preferredMapApp == "apple" {
+            openAppleMaps()
+        } else if preferredMapApp == "google" {
+            openGoogleMaps()
+        } else {
+            showingMapOptions = true
+        }
+    }
+    
+    private func openAppleMaps() {
+        let encodedName = mountain.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Mountain"
+        let mapsURLString = "maps://?ll=\(mountain.latitude),\(mountain.longitude)&q=\(encodedName)"
+        if let url = URL(string: mapsURLString) {
+            UIApplication.shared.open(url, options: [:]) { success in
+                if !success, let httpURL = URL(string: "http://maps.apple.com/?ll=\(mountain.latitude),\(mountain.longitude)&q=\(encodedName)") {
+                    UIApplication.shared.open(httpURL)
+                }
+            }
+        }
+    }
+    
+    private func openGoogleMaps() {
+        let encodedName = mountain.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Mountain"
+        let appURLString = "comgooglemaps://?q=\(mountain.latitude),\(mountain.longitude)(\(encodedName))&zoom=14"
+        let webURLString = "https://www.google.com/maps/search/?api=1&query=\(mountain.latitude),\(mountain.longitude)"
+        
+        if let appURL = URL(string: appURLString) {
+            UIApplication.shared.open(appURL, options: [:]) { success in
+                if !success, let webURL = URL(string: webURLString) {
+                    UIApplication.shared.open(webURL)
+                }
+            }
+        } else if let webURL = URL(string: webURLString) {
+            UIApplication.shared.open(webURL)
+        }
+    }
+    
+    private func copyCoordinates() {
+        let coordsString = String(format: "%.6f, %.6f", mountain.latitude, mountain.longitude)
+        UIPasteboard.general.string = coordsString
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        withAnimation(.spring()) {
+            showCopiedToast = true
+        }
     }
 }
-
 struct SpecCard: View {
     let title: String
     let value: String
     let icon: String
     let color: Color
+    var isInteractive: Bool = false
     
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(color)
@@ -165,6 +295,14 @@ struct SpecCard: View {
                     .font(.subheadline)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
+            }
+            
+            Spacer(minLength: 0)
+            
+            if isInteractive {
+                Image(systemName: "arrow.up.right.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(color.opacity(0.85))
             }
         }
         .padding(12)

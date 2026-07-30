@@ -133,8 +133,8 @@ struct AddCustomMountainView: View {
                                             .fontWeight(.bold)
                                             .padding(.horizontal, 10)
                                             .padding(.vertical, 4)
-                                            .background(Color.emeraldGreen.opacity(0.15))
-                                            .foregroundColor(.emeraldGreen)
+                                            .background(Color.gliderBlue.opacity(0.15))
+                                            .foregroundColor(.gliderBlue)
                                             .cornerRadius(8)
                                     }
                                     .padding(.vertical, 4)

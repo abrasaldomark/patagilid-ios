@@ -63,11 +63,11 @@ struct HikeLogCreationView: View {
                     } label: {
                         if viewModel.isSaving {
                             ProgressView()
-                                .tint(.emeraldGreen)
+                                .tint(.gliderBlue)
                         } else {
                             Text("Save")
                                 .fontWeight(.bold)
-                                .foregroundColor(.emeraldGreen)
+                                .foregroundColor(.gliderBlue)
                         }
                     }
                     .disabled(viewModel.isSaving)
@@ -100,9 +100,9 @@ struct HikeLogCreationView: View {
         HStack(spacing: 16) {
             Image(systemName: "mountain.2.fill")
                 .font(.system(size: 28))
-                .foregroundColor(.emeraldGreen)
+                .foregroundColor(.gliderBlue)
                 .frame(width: 56, height: 56)
-                .background(Color.emeraldGreen.opacity(0.12))
+                .background(Color.gliderBlue.opacity(0.12))
                 .clipShape(RoundedRectangle(cornerRadius: 14))
             
             VStack(alignment: .leading, spacing: 4) {
@@ -121,7 +121,7 @@ struct HikeLogCreationView: View {
                 Text("\(mountain.elevationMASL) MASL")
                     .font(.caption)
                     .fontWeight(.heavy)
-                    .foregroundColor(.teal)
+                    .foregroundColor(.summitSteel)
                 
                 Text(mountain.region)
                     .font(.caption)
@@ -132,7 +132,7 @@ struct HikeLogCreationView: View {
             Spacer()
         }
         .padding()
-        .background(Color.secondary.opacity(0.07))
+        .background(Color.secondary.opacity(0.06))
         .cornerRadius(16)
         .padding(.horizontal)
         .padding(.top, 8)
@@ -210,7 +210,7 @@ struct HikeLogCreationView: View {
                 // Trail / Entry Route Name
                 HStack(spacing: 12) {
                     Image(systemName: viewModel.isTraverse ? "arrow.down.right.circle.fill" : "point.forward.to.point.capsulepath")
-                        .foregroundColor(.emeraldGreen)
+                        .foregroundColor(.summitSteel)
                         .frame(width: 24)
                     
                     VStack(alignment: .leading, spacing: 4) {
@@ -269,7 +269,7 @@ struct HikeLogCreationView: View {
                 // Trail Class
                 HStack(spacing: 12) {
                     Image(systemName: "figure.climbing")
-                        .foregroundColor(.teal)
+                        .foregroundColor(.summitSteel)
                         .frame(width: 24)
                     
                     VStack(alignment: .leading, spacing: 4) {
@@ -514,10 +514,10 @@ struct HikeLogCreationView: View {
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                         }
-                        .foregroundColor(.emeraldGreen)
+                        .foregroundColor(.gliderBlue)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.emeraldGreen.opacity(0.12))
+                        .background(Color.gliderBlue.opacity(0.12))
                         .cornerRadius(12)
                         .padding(.horizontal, viewModel.totalPhotosCount == 0 ? 0 : 8)
                     }

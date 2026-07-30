@@ -23,7 +23,7 @@ struct AdminModerationQueueView: View {
                     VStack(spacing: 16) {
                         Image(systemName: "checkmark.shield.fill")
                             .font(.system(size: 60))
-                            .foregroundColor(.emeraldGreen)
+                            .foregroundColor(.gliderBlue)
                         
                         Text("Queue Empty!")
                             .font(.title2)
@@ -100,12 +100,12 @@ struct AdminModerationQueueView: View {
                     
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.up.right.circle.fill")
-                            .foregroundColor(.emeraldGreen)
+                            .foregroundColor(.gliderBlue)
                             .font(.caption)
                         Text("\(peak.elevationMASL) MASL")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundColor(.emeraldGreen)
+                            .foregroundColor(.summitSteel)
                         Text("•")
                             .foregroundColor(.secondary)
                         Text(peak.islandGroup.rawValue)
@@ -209,7 +209,7 @@ struct AdminModerationQueueView: View {
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(Color.emeraldGreen)
+                    .background(Color.gliderBlue)
                     .foregroundColor(.white)
                     .cornerRadius(8)
                 }

@@ -25,14 +25,14 @@ struct OnboardingView: View {
     private let pages: [OnboardingPage] = [
         OnboardingPage(
             systemImage: "mountain.2.circle.fill",
-            iconTint: .emeraldGreen,
+            iconTint: .gliderBlue,
             badgeText: "EXPLORE",
             title: "Discover Philippine Peaks",
             subtitle: "Explore over 2,300 official mountains across Luzon, Visayas, and Mindanao with precise elevations and trail difficulty ratings."
         ),
         OnboardingPage(
             systemImage: "line.3.horizontal.decrease.circle.fill",
-            iconTint: .teal,
+            iconTint: .summitSteel,
             badgeText: "CURATE",
             title: "Filter & Plan Ascents",
             subtitle: "Effortlessly sort peaks by elevation or filter by island groups and provinces to curate your personal hiking bucket list."
@@ -195,13 +195,13 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity, minHeight: 54, maxHeight: 54)
                     .background(
                         LinearGradient(
-                            colors: [.emeraldGreen, .teal],
+                            colors: [.gliderBlue, .summitSteel],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
                     .cornerRadius(16)
-                    .shadow(color: Color.emeraldGreen.opacity(0.35), radius: 8, x: 0, y: 4)
+                    .shadow(color: Color.gliderBlue.opacity(0.35), radius: 8, x: 0, y: 4)
                 }
                 .transition(.opacity)
             } else {

@@ -46,10 +46,10 @@ struct PeaksListView: View {
                         .padding(.vertical, 10)
                         .background(
                             viewModel.pendingReviewPeaks.isEmpty ?
-                            LinearGradient(gradient: Gradient(colors: [Color.emeraldGreen, Color.teal]), startPoint: .leading, endPoint: .trailing) :
+                            LinearGradient(gradient: Gradient(colors: [Color.gliderBlue, Color.summitSteel]), startPoint: .leading, endPoint: .trailing) :
                             LinearGradient(gradient: Gradient(colors: [Color.orange, Color.red]), startPoint: .leading, endPoint: .trailing)
                         )
-                        .shadow(color: (viewModel.pendingReviewPeaks.isEmpty ? Color.teal : Color.orange).opacity(0.3), radius: 4, x: 0, y: 2)
+                        .shadow(color: (viewModel.pendingReviewPeaks.isEmpty ? Color.gliderBlue : Color.red).opacity(0.3), radius: 4, x: 0, y: 2)
                     }
                     .buttonStyle(.plain)
                 }
@@ -127,10 +127,10 @@ struct PeaksListView: View {
                             .fontWeight(.bold)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 12)
-                            .background(Color.emeraldGreen)
+                            .background(Color.gliderBlue)
                             .foregroundColor(.white)
                             .cornerRadius(12)
-                            .shadow(color: Color.emeraldGreen.opacity(0.3), radius: 6, x: 0, y: 3)
+                            .shadow(color: Color.gliderBlue.opacity(0.3), radius: 6, x: 0, y: 3)
                         }
                         .buttonStyle(.plain)
                         .padding(.top, 4)
@@ -172,7 +172,7 @@ struct PeaksListView: View {
                         }
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundColor(.emeraldGreen)
+                        .foregroundColor(.gliderBlue)
                     }
                 }
                 
@@ -213,7 +213,7 @@ struct PeaksListView: View {
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle.fill")
                             .font(.title3)
-                            .foregroundColor(.teal)
+                            .foregroundColor(.gliderBlue)
                     }
                 }
             }
@@ -244,10 +244,10 @@ struct FilterPill: View {
                 .fontWeight(isSelected ? .bold : .semibold)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(isSelected ? Color.emeraldGreen : Color.secondary.opacity(0.15))
+                .background(isSelected ? Color.gliderBlue : Color.secondary.opacity(0.15))
                 .foregroundColor(isSelected ? .white : .primary)
                 .clipShape(Capsule())
-                .shadow(color: isSelected ? Color.emeraldGreen.opacity(0.3) : .clear, radius: 4, x: 0, y: 2)
+                .shadow(color: isSelected ? Color.gliderBlue.opacity(0.3) : .clear, radius: 4, x: 0, y: 2)
         }
     }
 }
@@ -294,8 +294,8 @@ struct PeakRowView: View {
     
     private func islandColor(for group: IslandGroup) -> Color {
         switch group {
-        case .luzon: return .emeraldGreen
-        case .visayas: return .teal
+        case .luzon: return .gliderBlue
+        case .visayas: return .summitSteel
         case .mindanao: return .blue
         }
     }

@@ -94,6 +94,27 @@ struct AddCustomMountainView: View {
     var body: some View {
         NavigationStack {
             Form {
+                // MARK: - Purpose Guidance Banner
+                Section {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.gliderBlue)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Contributing to PataGilid Directory")
+                                .font(.subheadline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                            Text("Use this form to submit an unlisted mountain or trail to the national catalog. Your submission will be reviewed by administrators before becoming visible to all mountaineers.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .listRowBackground(Color.gliderBlue.opacity(0.1))
+                
                 // MARK: - Smart Suggest (Duplicate Prevention Banner)
                 if !similarPeaks.isEmpty {
                     Section {
@@ -213,7 +234,7 @@ struct AddCustomMountainView: View {
                     region = first
                 }
             }
-            .navigationTitle("Add Local Mountain")
+            .navigationTitle("Contribute Peak")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

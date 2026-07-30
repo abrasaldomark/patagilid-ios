@@ -162,7 +162,7 @@ struct PeaksListView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "plus.circle.fill")
-                            Text("Add Peak")
+                            Text("Contribute Peak")
                         }
                         .font(.subheadline)
                         .fontWeight(.semibold)

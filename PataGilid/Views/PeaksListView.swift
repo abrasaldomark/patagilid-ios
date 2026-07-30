@@ -15,6 +15,7 @@ struct PeaksListView: View {
     @State private var showAddCustomPeak: Bool = false
     @State private var showAdminQueue: Bool = false
     @State private var selectedNewPeak: Mountain? = nil
+    @State private var isSearchVisible: Bool = false
     
     var body: some View {
         NavigationStack {
@@ -150,7 +151,7 @@ struct PeaksListView: View {
                     .listStyle(.plain)
                 }
             }
-            .searchable(text: $viewModel.searchText, prompt: "Search by Name, Region (e.g. Region 6), or Details")
+            .conditionalSearchable(text: $viewModel.searchText, isPresented: $isSearchVisible, prompt: "Search by Name, Region (e.g. Region 6), or Details")
             .navigationTitle("Philippine Peaks")
             .navigationDestination(item: $selectedNewPeak) { peak in
                 PeakDetailView(mountain: peak)
@@ -172,42 +173,52 @@ struct PeaksListView: View {
                 
                 // Sorting & Region Filters Menu
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Section(header: Text("Sort Order")) {
-                            ForEach(PeakSortOrder.allCases, id: \.self) { order in
-                                Button(action: { viewModel.sortOrder = order }) {
-                                    HStack {
-                                        Text(order.rawValue)
-                                        if viewModel.sortOrder == order {
-                                            Image(systemName: "checkmark")
-                                        }
-                                    }
-                                }
-                            }
+                    HStack(spacing: 12) {
+                        Button {
+                            isSearchVisible = true
+                        } label: {
+                            Image(systemName: "magnifyingglass.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(.gliderBlue)
                         }
                         
-                        Section(header: Text("Filter by Region")) {
-                            Button(action: { viewModel.selectRegion(nil) }) {
-                                Text("All Regions")
-                            }
-                            
-                            ForEach(viewModel.availableRegions, id: \.self) { region in
-                                Button(action: {
-                                    viewModel.selectRegion(region)
-                                }) {
-                                    HStack {
-                                        Text(region)
-                                        if viewModel.selectedRegion == region {
-                                            Image(systemName: "checkmark")
+                        Menu {
+                            Section(header: Text("Sort Order")) {
+                                ForEach(PeakSortOrder.allCases, id: \.self) { order in
+                                    Button(action: { viewModel.sortOrder = order }) {
+                                        HStack {
+                                            Text(order.rawValue)
+                                            if viewModel.sortOrder == order {
+                                                Image(systemName: "checkmark")
+                                            }
                                         }
                                     }
                                 }
                             }
+                            
+                            Section(header: Text("Filter by Region")) {
+                                Button(action: { viewModel.selectRegion(nil) }) {
+                                    Text("All Regions")
+                                }
+                                
+                                ForEach(viewModel.availableRegions, id: \.self) { region in
+                                    Button(action: {
+                                        viewModel.selectRegion(region)
+                                    }) {
+                                        HStack {
+                                            Text(region)
+                                            if viewModel.selectedRegion == region {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(.gliderBlue)
                         }
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                            .font(.title3)
-                            .foregroundColor(.gliderBlue)
                     }
                 }
             }

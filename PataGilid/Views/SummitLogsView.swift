@@ -11,6 +11,7 @@ import SwiftUI
 struct SummitLogsView: View {
     @StateObject private var viewModel = SummitLogsViewModel()
     @EnvironmentObject var peaksViewModel: PeaksViewModel
+    @State private var isSearchVisible: Bool = false
     
     var body: some View {
         NavigationStack {
@@ -29,18 +30,16 @@ struct SummitLogsView: View {
                 }
             }
             .navigationTitle("My Summit Logs")
-            .searchable(text: $viewModel.searchText, prompt: "Search Mountain, Region, or Trail")
+            .conditionalSearchable(text: $viewModel.searchText, isPresented: $isSearchVisible, prompt: "Search Mountain, Region, or Trail")
             .toolbar {
                 if !viewModel.logs.isEmpty {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         HStack(spacing: 12) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "checkmark.seal.fill")
-                                    .foregroundColor(.gliderBlue)
-                                    .font(.caption)
-                                Text("\(viewModel.logs.filter { $0.didSummit }.count) summited")
-                                    .font(.caption)
-                                    .fontWeight(.bold)
+                            Button {
+                                isSearchVisible = true
+                            } label: {
+                                Image(systemName: "magnifyingglass.circle.fill")
+                                    .font(.title3)
                                     .foregroundColor(.gliderBlue)
                             }
                             

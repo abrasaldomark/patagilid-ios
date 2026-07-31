@@ -48,7 +48,7 @@ class HikeLogViewModel: ObservableObject {
     @Published var trailDifficulty: String = ""
     @Published var trailClass: String = ""
     
-    // MARK: - Photo Attachments (Max 50)
+    // MARK: - Photo Attachments
     @Published var selectedPhotos: [PhotosPickerItem] = []
     @Published var selectedPhotoAssets: [SelectedPhotoAsset] = []
     @Published var existingPhotoUrls: [String] = []

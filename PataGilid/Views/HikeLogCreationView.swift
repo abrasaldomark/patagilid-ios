@@ -8,7 +8,7 @@
 import SwiftUI
 import PhotosUI
 
-/// Modal sheet for recording a climb attempt — date, summit count, DNF count, and up to 50 photos.
+/// Modal sheet for recording a climb attempt — date, outcome, trail details, and optional climb photos.
 struct HikeLogCreationView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     let mountain: Mountain
@@ -17,8 +17,7 @@ struct HikeLogCreationView: View {
     @StateObject private var viewModel = HikeLogViewModel()
     @Environment(\.dismiss) private var dismiss
     
-    @AppStorage("isPataGilidPro") private var isProUser: Bool = false
-    @State private var showProPaywall: Bool = false
+
     
     var body: some View {
         NavigationStack {
@@ -28,11 +27,7 @@ struct HikeLogCreationView: View {
                     activityForm
                     trailDetailsForm
                     
-                    if isProUser || authViewModel.isAdmin {
-                        photosForm
-                    } else {
-                        lockedProPhotosCard
-                    }
+                    photosForm
                     
                     if let error = viewModel.errorMessage {
                         errorBanner(error)
@@ -88,9 +83,7 @@ struct HikeLogCreationView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showProPaywall) {
-                ProPaywallView()
-            }
+
         }
     }
     
@@ -363,81 +356,18 @@ struct HikeLogCreationView: View {
     
     // MARK: - Photos Attachment Form
     
-    private var lockedProPhotosCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
-                Image(systemName: "camera.fill.badge.ellipsis")
-                    .font(.system(size: 26))
-                    .foregroundColor(.orange)
-                    .frame(width: 48, height: 48)
-                    .background(Color.orange.opacity(0.15))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text("Climb Photo Memories")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                        
-                        Text("PRO")
-                            .font(.system(size: 10, weight: .black))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.orange)
-                            .clipShape(Capsule())
-                    }
-                    Text("Attach up to 3 summit & jump-off photos to your climb records.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 0)
-            }
-            
-            Button {
-                showProPaywall = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "crown.fill")
-                    Text("Unlock PataGilid Pro — ₱249")
-                        .fontWeight(.bold)
-                }
-                .font(.subheadline)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(
-                    LinearGradient(
-                        colors: [.orange, .red.opacity(0.85)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .cornerRadius(12)
-                .shadow(color: Color.orange.opacity(0.3), radius: 6, x: 0, y: 3)
-            }
-        }
-        .padding(16)
-        .background(Color.secondary.opacity(0.06))
-        .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.orange.opacity(0.35), lineWidth: 1.5)
-        )
-        .padding(.horizontal)
-    }
-    
     private var photosForm: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Climb Photos")
                     .font(.headline)
                 Spacer()
-                Text("\(viewModel.totalPhotosCount)/50 Max")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(viewModel.totalPhotosCount >= 50 ? .orange : .secondary)
+                if viewModel.totalPhotosCount > 0 {
+                    Text("\(viewModel.totalPhotosCount) photo\(viewModel.totalPhotosCount == 1 ? "" : "s")")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                }
             }
             .padding(.horizontal)
             
@@ -500,31 +430,28 @@ struct HikeLogCreationView: View {
                     }
                 }
                 
-                if viewModel.totalPhotosCount < 50 {
-                    PhotosPicker(
-                        selection: $viewModel.selectedPhotos,
-                        maxSelectionCount: max(1, 50 - viewModel.existingPhotoUrls.count),
-                        matching: .images,
-                        photoLibrary: .shared()
-                    ) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "photo.badge.plus")
-                                .font(.title3)
-                            Text(viewModel.totalPhotosCount == 0 ? "Add Photos (Max 50)" : "Change / Add Photos")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                        }
-                        .foregroundColor(.gliderBlue)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.gliderBlue.opacity(0.12))
-                        .cornerRadius(12)
-                        .padding(.horizontal, viewModel.totalPhotosCount == 0 ? 0 : 8)
+                PhotosPicker(
+                    selection: $viewModel.selectedPhotos,
+                    matching: .images,
+                    photoLibrary: .shared()
+                ) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "photo.badge.plus")
+                            .font(.title3)
+                        Text(viewModel.totalPhotosCount == 0 ? "Add Photos" : "Change / Add Photos")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
                     }
-                    .onChange(of: viewModel.selectedPhotos) { _, _ in
-                        Task {
-                            await viewModel.loadPhotos()
-                        }
+                    .foregroundColor(.gliderBlue)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.gliderBlue.opacity(0.12))
+                    .cornerRadius(12)
+                    .padding(.horizontal, viewModel.totalPhotosCount == 0 ? 0 : 8)
+                }
+                .onChange(of: viewModel.selectedPhotos) { _, _ in
+                    Task {
+                        await viewModel.loadPhotos()
                     }
                 }
             }

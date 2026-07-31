@@ -111,6 +111,42 @@ struct MainTabView: View {
                             }
                         }
                     }
+                    Section(
+                        header: Text("Support the Developer"),
+                        footer: Text("PataGilid is free to use. If it has helped your mountaineering journeys, a small coffee goes a long way! ☕️")
+                    ) {
+                        Button {
+                            if let url = URL(string: "https://www.buymeacoffee.com/markabrasaldo") {
+                                UIApplication.shared.open(url)
+                            }
+                        } label: {
+                            HStack(spacing: 14) {
+                                Text("☕️")
+                                    .font(.system(size: 26))
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.yellow.opacity(0.15))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("Buy Me a Coffee")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.primary)
+                                    Text("Starting at $5 — Thank you! 🙏")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "arrow.up.right.square")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    
                     Section(header: Text("Account Settings")) {
                         Button {
                             hasSeenOnboarding = false

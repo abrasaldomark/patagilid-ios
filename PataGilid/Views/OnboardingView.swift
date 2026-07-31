@@ -46,10 +46,10 @@ struct OnboardingView: View {
         ),
         OnboardingPage(
             systemImage: "camera.fill.badge.ellipsis",
-            iconTint: .red,
-            badgeText: "PRO FEATURE 👑",
+            iconTint: .orange,
+            badgeText: nil,
             title: "Preserve Climb Memories",
-            subtitle: "Unlock PataGilid Pro to attach up to 3 high-definition climb photos per log and securely back up your adventures across all your iOS and Android devices."
+            subtitle: "Attach high-definition photos to any climb log and back up your entire climbing legacy securely to your Google Drive — free for every hiker."
         )
     ]
     

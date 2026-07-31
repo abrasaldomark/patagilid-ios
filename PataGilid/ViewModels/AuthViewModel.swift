@@ -54,10 +54,6 @@ class AuthViewModel: ObservableObject {
         authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] (_, user) in
             Task { @MainActor in
                 self?.currentUser = user
-                if self?.isAdmin == true {
-                    UserDefaults.standard.set(true, forKey: "isPataGilidPro")
-                    print("👑 [AuthViewModel] Admin account verified! PataGilid Pro superpowers automatically unlocked.")
-                }
             }
         }
     }

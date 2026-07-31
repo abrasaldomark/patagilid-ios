@@ -255,7 +255,7 @@ struct FilterPill: View {
                         .resizable()
                         .renderingMode(.template)
                         .scaledToFit()
-                        .frame(width: 13, height: 13)
+                        .frame(width: 18, height: 18)
                 }
                 Text(title)
             }

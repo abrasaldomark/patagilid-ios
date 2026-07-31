@@ -98,7 +98,7 @@ struct DonationQRView: View {
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)
 
-                        Text("Scan with GCash, Maya, or your banking app")
+                        Text("Scan with your banking app")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

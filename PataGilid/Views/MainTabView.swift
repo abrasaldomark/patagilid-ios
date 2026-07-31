@@ -131,7 +131,7 @@ struct MainTabView: View {
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
                                         .foregroundColor(.primary)
-                                    Text("Scan my bank QR — Starting at ₱50 🙏")
+                                    Text("Scan my bank QR and fuel the dev's next summit attempt 🥾🏕️⛰️")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }

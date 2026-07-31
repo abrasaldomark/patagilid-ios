@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 import FirebaseFirestore
 
 /// Fetches the developer support/donation config from `app_config/support` in Firestore.
@@ -14,7 +15,7 @@ import FirebaseFirestore
 @MainActor
 class SupportViewModel: ObservableObject {
     @Published var qrImageUrl: URL? = nil
-    @Published var caption: String = "GCash / BDO · Mark Abrasaldo"
+    @Published var caption: String = "Metrobank · Mark Abrasaldo"
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
 

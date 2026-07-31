@@ -103,13 +103,31 @@ struct SummitLogsView: View {
     // MARK: - States
     
     private var loadingView: some View {
-        VStack(spacing: 12) {
-            ProgressView()
-                .scaleEffect(1.3)
-                .tint(.gliderBlue)
-            Text("Loading your logs...")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+        VStack(spacing: 0) {
+            // Skeleton Filter Bar
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(0..<4, id: \.self) { _ in
+                        Capsule()
+                            .fill(Color.secondary.opacity(0.15))
+                            .frame(width: 85, height: 30)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 10)
+            }
+            .background(Color.secondary.opacity(0.06))
+            
+            // Skeleton List
+            List {
+                ForEach(0..<6, id: \.self) { _ in
+                    SummitLogSkeletonRow()
+                        .listRowBackground(Color(uiColor: .secondarySystemGroupedBackground))
+                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                }
+            }
+            .listStyle(.insetGrouped)
+            .disabled(true)
         }
     }
     
@@ -364,6 +382,84 @@ struct SummitLogRow: View {
     }
 }
 
-#Preview {
+// MARK: - Skeleton Row Component
+
+/// A shimmering placeholder row simulating a summit log entry while loading.
+struct SummitLogSkeletonRow: View {
+    @State private var isPulsing = false
+    
+    var body: some View {
+        HStack(spacing: 14) {
+            // Outcome Icon Skeleton
+            Circle()
+                .fill(Color.secondary.opacity(0.2))
+                .frame(width: 44, height: 44)
+            
+            VStack(alignment: .leading, spacing: 8) {
+                // Mountain Name Skeleton
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.secondary.opacity(0.2))
+                    .frame(width: 170, height: 16)
+                
+                // Elevation & Date Skeleton
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.secondary.opacity(0.15))
+                    .frame(width: 120, height: 12)
+                
+                // Region Skeleton
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.secondary.opacity(0.15))
+                    .frame(width: 210, height: 12)
+                
+                // Outcome Badge Skeleton
+                Capsule()
+                    .fill(Color.secondary.opacity(0.2))
+                    .frame(width: 76, height: 20)
+            }
+            
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 6)
+        .opacity(isPulsing ? 0.35 : 0.85)
+        .animation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true), value: isPulsing)
+        .onAppear {
+            isPulsing = true
+        }
+    }
+}
+
+#Preview("Summit Logs") {
     SummitLogsView()
+}
+
+#Preview("Skeleton Loading") {
+    ZStack {
+        Color(uiColor: .systemGroupedBackground)
+            .ignoresSafeArea()
+        
+        VStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(0..<4, id: \.self) { _ in
+                        Capsule()
+                            .fill(Color.secondary.opacity(0.15))
+                            .frame(width: 85, height: 30)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 10)
+            }
+            .background(Color.secondary.opacity(0.06))
+            
+            List {
+                ForEach(0..<6, id: \.self) { _ in
+                    SummitLogSkeletonRow()
+                        .listRowBackground(Color(uiColor: .secondarySystemGroupedBackground))
+                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                }
+            }
+            .listStyle(.insetGrouped)
+            .disabled(true)
+        }
+    }
 }

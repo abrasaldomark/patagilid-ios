@@ -13,6 +13,7 @@ struct MainTabView: View {
     @ObservedObject var authViewModel: AuthViewModel
     @StateObject private var peaksViewModel = PeaksViewModel()
     @State private var showAdminQueue: Bool = false
+    @State private var showDonationSheet: Bool = false
     @State private var selectedTab: Int = 0
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = true
     
@@ -116,9 +117,7 @@ struct MainTabView: View {
                         footer: Text("PataGilid is free to use. If it has helped your mountaineering journeys, a small coffee goes a long way! ☕️")
                     ) {
                         Button {
-                            if let url = URL(string: "https://www.buymeacoffee.com/markabrasaldo") {
-                                UIApplication.shared.open(url)
-                            }
+                            showDonationSheet = true
                         } label: {
                             HStack(spacing: 14) {
                                 Text("☕️")
@@ -132,14 +131,14 @@ struct MainTabView: View {
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
                                         .foregroundColor(.primary)
-                                    Text("Starting at $5 — Thank you! 🙏")
+                                    Text("Scan my bank QR — Starting at ₱50 🙏")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
                                 
                                 Spacer()
                                 
-                                Image(systemName: "arrow.up.right.square")
+                                Image(systemName: "qrcode")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
@@ -183,6 +182,9 @@ struct MainTabView: View {
         .sheet(isPresented: $showAdminQueue) {
             AdminModerationQueueView()
                 .environmentObject(peaksViewModel)
+        }
+        .sheet(isPresented: $showDonationSheet) {
+            DonationQRView()
         }
     }
     

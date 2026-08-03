@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function checking your exact list of authorized admin emails and domains
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email in ['hustlas4ever@gmail.com', 'markabrasaldo@gmail.com', 'mark.abrasaldo@gmail.com', 'abrasaldomark@gmail.com'] ||
+        request.auth.token.email.matches('.*@patagilid[.]com')
+      );
+    }
+
+    // Public read for donation QR config — no auth required
+    match /app_config/{document} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /mountains/{mountain} {
+      // Anyone can view mountains
+      allow read: if true;
+      
+      // Admins can create approved peaks; signed-in hikers can submit custom peaks ONLY as unapproved
+      allow create: if isAdmin() || (request.auth != null && request.resource.data.isApproved == false);
+      
+      // Signed-in hikers can update mountains to propose GPS locations and vote; only admins can delete peaks
+      allow update: if request.auth != null;
+      allow delete: if isAdmin();
+    }
+
+    // Signed-in hikers can submit GPS calibrations for admin review; only admins can modify or evaluate them!
+    match /coordinate_submissions/{submission} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

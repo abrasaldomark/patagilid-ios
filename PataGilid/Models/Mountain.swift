@@ -71,17 +71,44 @@ final class Mountain: Identifiable, Hashable {
     
     /// Contributor email address for administrative moderation context.
     var contributorEmail: String?
+    var contributorName: String? = nil
+    
+    // MARK: - Pending Crowdsourced GPS Calibration
+    
+    var pendingLatitude: Double?
+    var pendingLongitude: Double?
+    var pendingRegion: String?
+    var pendingContributorEmail: String?
+    var pendingContributorName: String? = nil
+    var pendingVerifications: Int = 0
+    var pendingVerifierEmails: [String] = []
+    
+    // MARK: - Contributor Display Helpers
+    
+    var displayContributorName: String? {
+        if let name = contributorName, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return name
+        }
+        return contributorEmail?.formattedFirstName
+    }
+    
+    var displayPendingContributorName: String? {
+        if let name = pendingContributorName, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return name
+        }
+        return pendingContributorEmail?.formattedFirstName
+    }
     
     // MARK: - Delta-Sync & Crowdsourced GPS Verification Metadata
     
     /// Timestamp indicating when this peak record or its GPS coordinates were last calibrated in Firestore.
-    var updatedAt: Date
+    var updatedAt: Date = Date()
     
     /// True if real hikers have verified the exact GPS summit location on the mountain.
-    var isVerifiedByCommunity: Bool
+    var isVerifiedByCommunity: Bool = false
     
     /// Total number of hikers who have contributed or affirmed these GPS coordinates.
-    var communityVerifications: Int
+    var communityVerifications: Int = 0
     
     /// Helper property determining if this mountain should be displayed in the global public directory.
     var isPubliclyApproved: Bool {
@@ -102,9 +129,17 @@ final class Mountain: Identifiable, Hashable {
         isApproved: Bool? = nil,
         contributorId: String? = nil,
         contributorEmail: String? = nil,
+        contributorName: String? = nil,
         updatedAt: Date = Date(),
         isVerifiedByCommunity: Bool = false,
-        communityVerifications: Int = 0
+        communityVerifications: Int = 0,
+        pendingLatitude: Double? = nil,
+        pendingLongitude: Double? = nil,
+        pendingRegion: String? = nil,
+        pendingContributorEmail: String? = nil,
+        pendingContributorName: String? = nil,
+        pendingVerifications: Int = 0,
+        pendingVerifierEmails: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -119,9 +154,17 @@ final class Mountain: Identifiable, Hashable {
         self.isApproved = isApproved
         self.contributorId = contributorId
         self.contributorEmail = contributorEmail
+        self.contributorName = contributorName
         self.updatedAt = updatedAt
         self.isVerifiedByCommunity = isVerifiedByCommunity
         self.communityVerifications = communityVerifications
+        self.pendingLatitude = pendingLatitude
+        self.pendingLongitude = pendingLongitude
+        self.pendingRegion = pendingRegion
+        self.pendingContributorEmail = pendingContributorEmail
+        self.pendingContributorName = pendingContributorName
+        self.pendingVerifications = pendingVerifications
+        self.pendingVerifierEmails = pendingVerifierEmails
     }
     
     // MARK: - Hashable & Equatable (By ID)
@@ -178,8 +221,10 @@ extension Mountain: Codable {
         case id, name, description, elevationMASL
         case latitude, longitude, region, islandGroup
         case difficultyLevel, trailClass
-        case isApproved, contributorId, contributorEmail
+        case isApproved, contributorId, contributorEmail, contributorName
         case updatedAt, isVerifiedByCommunity, communityVerifications
+        case pendingLatitude, pendingLongitude, pendingRegion, pendingContributorEmail, pendingContributorName
+        case pendingVerifications, pendingVerifierEmails
     }
     
     convenience init(from decoder: Decoder) throws {
@@ -197,6 +242,7 @@ extension Mountain: Codable {
         let isApproved = try container.decodeIfPresent(Bool.self, forKey: .isApproved)
         let contributorId = try container.decodeIfPresent(String.self, forKey: .contributorId)
         let contributorEmail = try container.decodeIfPresent(String.self, forKey: .contributorEmail)
+        let contributorName = try container.decodeIfPresent(String.self, forKey: .contributorName)
         
         let latitude = try? Mountain.decodeCoordinate(from: container, forKey: .latitude, isLatitude: true)
         let longitude = try? Mountain.decodeCoordinate(from: container, forKey: .longitude, isLatitude: false)
@@ -212,6 +258,13 @@ extension Mountain: Codable {
         
         let isVerifiedByCommunity = try container.decodeIfPresent(Bool.self, forKey: .isVerifiedByCommunity) ?? false
         let communityVerifications = try container.decodeIfPresent(Int.self, forKey: .communityVerifications) ?? 0
+        let pendingLatitude = try? Mountain.decodeCoordinate(from: container, forKey: .pendingLatitude, isLatitude: true)
+        let pendingLongitude = try? Mountain.decodeCoordinate(from: container, forKey: .pendingLongitude, isLatitude: false)
+        let pendingRegion = try? container.decodeIfPresent(String.self, forKey: .pendingRegion)
+        let pendingContributorEmail = try? container.decodeIfPresent(String.self, forKey: .pendingContributorEmail)
+        let pendingContributorName = try? container.decodeIfPresent(String.self, forKey: .pendingContributorName)
+        let pendingVerifications = try container.decodeIfPresent(Int.self, forKey: .pendingVerifications) ?? 0
+        let pendingVerifierEmails = try container.decodeIfPresent([String].self, forKey: .pendingVerifierEmails) ?? []
         
         self.init(
             id: id,
@@ -227,9 +280,17 @@ extension Mountain: Codable {
             isApproved: isApproved,
             contributorId: contributorId,
             contributorEmail: contributorEmail,
+            contributorName: contributorName,
             updatedAt: updatedAt,
             isVerifiedByCommunity: isVerifiedByCommunity,
-            communityVerifications: communityVerifications
+            communityVerifications: communityVerifications,
+            pendingLatitude: pendingLatitude,
+            pendingLongitude: pendingLongitude,
+            pendingRegion: pendingRegion,
+            pendingContributorEmail: pendingContributorEmail,
+            pendingContributorName: pendingContributorName,
+            pendingVerifications: pendingVerifications,
+            pendingVerifierEmails: pendingVerifierEmails
         )
     }
     
@@ -248,9 +309,17 @@ extension Mountain: Codable {
         try container.encodeIfPresent(isApproved, forKey: .isApproved)
         try container.encodeIfPresent(contributorId, forKey: .contributorId)
         try container.encodeIfPresent(contributorEmail, forKey: .contributorEmail)
+        try container.encodeIfPresent(contributorName, forKey: .contributorName)
         try container.encode(updatedAt, forKey: .updatedAt)
         try container.encode(isVerifiedByCommunity, forKey: .isVerifiedByCommunity)
         try container.encode(communityVerifications, forKey: .communityVerifications)
+        try container.encodeIfPresent(pendingLatitude, forKey: .pendingLatitude)
+        try container.encodeIfPresent(pendingLongitude, forKey: .pendingLongitude)
+        try container.encodeIfPresent(pendingRegion, forKey: .pendingRegion)
+        try container.encodeIfPresent(pendingContributorEmail, forKey: .pendingContributorEmail)
+        try container.encodeIfPresent(pendingContributorName, forKey: .pendingContributorName)
+        try container.encode(pendingVerifications, forKey: .pendingVerifications)
+        try container.encode(pendingVerifierEmails, forKey: .pendingVerifierEmails)
     }
     
     private static func decodeCoordinate(
@@ -299,5 +368,16 @@ extension Mountain: Codable {
         let seconds = numbers.count > 2 ? numbers[2] : 0.0
         
         return (degrees + (minutes / 60.0) + (seconds / 3600.0)) * sign
+    }
+}
+
+extension String {
+    /// Extracts a clean, capitalized first name from an email address or username string.
+    var formattedFirstName: String {
+        let prefix = self.components(separatedBy: "@").first ?? self
+        let delimiters = CharacterSet(charactersIn: "._-+").union(.decimalDigits)
+        let parts = prefix.components(separatedBy: delimiters).filter { !$0.isEmpty }
+        guard let first = parts.first, !first.isEmpty else { return "Explorer" }
+        return first.capitalized
     }
 }

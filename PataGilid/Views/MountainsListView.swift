@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import SwiftData
 
 /// An interactive, responsive explorer presenting all 2,688 Philippine mountain peaks with search, filtering, and sorting.
 struct MountainsListView: View {
+    @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var viewModel: MountainsViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
     
@@ -97,10 +99,25 @@ struct MountainsListView: View {
                     Text("Showing \(viewModel.filteredAndSortedPeaks.count) of \(viewModel.publicPeaks.count) Mountains")
                         .font(.caption)
                         .foregroundColor(.gray)
+                        .contentTransition(.numericText(value: Double(viewModel.publicPeaks.count)))
+                        .animation(.snappy, value: viewModel.publicPeaks.count)
                     Spacer()
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 6)
+                
+                // Ultra-thin progress bar displayed when downloading/synchronizing mountains
+                if viewModel.isDownloading || viewModel.isLoading {
+                    ProgressView(value: viewModel.downloadProgress > 0 ? viewModel.downloadProgress : 0.05, total: 1.0)
+                        .progressViewStyle(.linear)
+                        .tint(.gliderBlue)
+                        .background(Color.gliderBlue.opacity(0.15))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 3)
+                        .animation(.easeInOut(duration: 0.2), value: viewModel.downloadProgress)
+                } else {
+                    Color.clear.frame(height: 3)
+                }
                 
                 // Mountain List, Skeleton Loader & Empty Search State
                 if viewModel.isLoading && viewModel.filteredAndSortedPeaks.isEmpty {
@@ -242,11 +259,6 @@ struct MountainsListView: View {
             .sheet(isPresented: $showAdminQueue) {
                 AdminModerationQueueView()
                     .environmentObject(viewModel)
-            }
-            .task {
-                if authViewModel.isAdmin {
-                    await viewModel.fetchPendingGPSSubmissions()
-                }
             }
         }
     }

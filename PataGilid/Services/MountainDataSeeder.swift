@@ -88,7 +88,7 @@ class MountainDataSeeder {
     /// Synchronizes Cloud Firestore with local SwiftData storage using cost-optimized timestamp queries:
     /// "Give me only mountains where updatedAt > [my latest SwiftData timestamp]."
     @MainActor
-    func synchronizeWithFirestore(in modelContext: ModelContext) async {
+    func synchronizeWithFirestore(in modelContext: ModelContext, onProgress: ((Int, Int) -> Void)? = nil) async {
         // First check if we need to perform our one-time catalog seeding to Firestore
         await seedCleanCatalogToFirestoreOnce()
         
@@ -117,10 +117,19 @@ class MountainDataSeeder {
             
             guard modCount > 0 else { return }
             
-            for doc in snapshot.documents {
+            var appliedCount = 0
+            var processedIDs = Set<String>()
+            
+            for (index, doc) in snapshot.documents.enumerated() {
                 do {
                     let remotePeak = try doc.data(as: Mountain.self)
                     let peakId = remotePeak.id
+                    
+                    guard !processedIDs.contains(peakId) else {
+                        print("⚠️ [Delta-Sync] Skipping duplicate mountain ID in batch: \(peakId)")
+                        continue
+                    }
+                    processedIDs.insert(peakId)
                     
                     // Check if peak already exists in SwiftData by ID
                     var matchDesc = FetchDescriptor<Mountain>(predicate: #Predicate<Mountain> { $0.id == peakId })
@@ -138,20 +147,42 @@ class MountainDataSeeder {
                         existing.difficultyLevel = remotePeak.difficultyLevel
                         existing.trailClass = remotePeak.trailClass
                         existing.isApproved = remotePeak.isApproved
+                        existing.contributorName = remotePeak.contributorName
                         existing.updatedAt = remotePeak.updatedAt
                         existing.isVerifiedByCommunity = remotePeak.isVerifiedByCommunity
                         existing.communityVerifications = remotePeak.communityVerifications
+                        existing.pendingLatitude = remotePeak.pendingLatitude
+                        existing.pendingLongitude = remotePeak.pendingLongitude
+                        existing.pendingRegion = remotePeak.pendingRegion
+                        existing.pendingContributorEmail = remotePeak.pendingContributorEmail
+                        existing.pendingContributorName = remotePeak.pendingContributorName
+                        existing.pendingVerifications = remotePeak.pendingVerifications
+                        existing.pendingVerifierEmails = remotePeak.pendingVerifierEmails
                     } else {
                         // Insert brand new or initially synced peak into SwiftData
                         modelContext.insert(remotePeak)
+                    }
+                    appliedCount += 1
+                    
+                    // Commit to SwiftData in small responsive batches (every 30 peaks or on final peak)
+                    if appliedCount % 30 == 0 || index == modCount - 1 {
+                        try? modelContext.save()
+                        onProgress?(appliedCount, modCount)
+                        // Yield to SwiftUI render loop so numbers increment smoothly and progress bar fills up!
+                        try? await Task.sleep(nanoseconds: 12_000_000) // 12ms
                     }
                 } catch {
                     print("⚠️ [Delta-Sync] Failed to decode mountain document \(doc.documentID): \(error)")
                 }
             }
             
-            try? modelContext.save()
-            print("✅ [Delta-Sync] Successfully applied \(modCount) updates to SwiftData storage!")
+            do {
+                try modelContext.save()
+                print("✅ [Delta-Sync] Successfully applied and saved \(appliedCount) updates to SwiftData storage!")
+            } catch {
+                print("❌ [Delta-Sync] Failed to commit updates to SwiftData: \(error)")
+                print("⚠️ [Delta-Sync] Detailed error description: \(error.localizedDescription)")
+            }
         } catch {
             print("🌐 [Delta-Sync] Offline or network unreachable (\(error.localizedDescription)). Proceeding seamlessly with stored SwiftData catalog!")
         }

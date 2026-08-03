@@ -369,6 +369,7 @@ struct AddCustomMountainView: View {
                     trailClass: selectedClass,
                     contributorId: userId,
                     contributorEmail: authViewModel.currentUser?.email,
+                    contributorName: authViewModel.currentUser?.displayName?.components(separatedBy: " ").first?.capitalized ?? authViewModel.currentUser?.email?.formattedFirstName,
                     description: descriptionText.isEmpty ? "Community contributed hiking trail and mountain summit." : descriptionText
                 )
                 

@@ -15,6 +15,8 @@ struct OpenTopoMapView: UIViewRepresentable {
     var annotationCoordinate: CLLocationCoordinate2D?
     var annotationTitle: String
     var isInteractivePicker: Bool
+    var isDraggableAnnotation: Bool = false
+    var onAnnotationDrag: ((CLLocationCoordinate2D) -> Void)? = nil
     var onSelectCoordinate: ((CLLocationCoordinate2D) -> Void)?
     var cameraTrigger: UUID
 
@@ -61,6 +63,12 @@ struct OpenTopoMapView: UIViewRepresentable {
             }
             
             mapView.addGestureRecognizer(tapGesture)
+        }
+        
+        if isInteractivePicker || isDraggableAnnotation {
+            let longPressGesture = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress(_:)))
+            longPressGesture.minimumPressDuration = 0.4
+            mapView.addGestureRecognizer(longPressGesture)
         }
 
         context.coordinator.lastCameraTrigger = cameraTrigger
@@ -121,6 +129,18 @@ struct OpenTopoMapView: UIViewRepresentable {
             let coordinate = mapView.convert(point, toCoordinateFrom: mapView)
             parent.onSelectCoordinate?(coordinate)
         }
+        
+        @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+            guard gesture.state == .began, let mapView = gesture.view as? MKMapView else { return }
+            let point = gesture.location(in: mapView)
+            let coordinate = mapView.convert(point, toCoordinateFrom: mapView)
+            
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.impactOccurred()
+            
+            parent.onAnnotationDrag?(coordinate)
+            parent.onSelectCoordinate?(coordinate)
+        }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let tileOverlay = overlay as? MKTileOverlay {
@@ -139,8 +159,20 @@ struct OpenTopoMapView: UIViewRepresentable {
                 view?.annotation = annotation
             }
             let pinTitle = (annotation.title ?? nil) ?? ""
-            view?.configure(title: pinTitle, isInteractive: parent.isInteractivePicker)
+            view?.configure(title: pinTitle, isInteractive: parent.isInteractivePicker || parent.isDraggableAnnotation)
+            view?.isDraggable = parent.isInteractivePicker || parent.isDraggableAnnotation
             return view
+        }
+        
+        func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView, didChange newState: MKAnnotationView.DragState, fromOldState oldState: MKAnnotationView.DragState) {
+            if newState == .ending || newState == .none {
+                if let coordinate = view.annotation?.coordinate {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    parent.onAnnotationDrag?(coordinate)
+                    parent.onSelectCoordinate?(coordinate)
+                }
+            }
         }
     }
 }

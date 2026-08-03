@@ -176,11 +176,6 @@ struct MainTabView: View {
                     }
                 }
                 .navigationTitle("Profile & Settings")
-                .task {
-                    if authViewModel.isAdmin {
-                        await mountainsViewModel.fetchPendingGPSSubmissions()
-                    }
-                }
             }
             .tabItem {
                 Label("Profile", systemImage: "person.crop.circle.fill")

@@ -41,7 +41,7 @@ struct AdminModerationQueueView: View {
                     List {
                         if !mountainsViewModel.pendingReviewPeaks.isEmpty {
                             Section(header: Text("Pending Community Mountains (\(mountainsViewModel.pendingReviewPeaks.count))"),
-                                    footer: Text("Approved mountains go live instantly in the public catalog. Merged mountains re-link contributor logs to an official entry and remove the duplicate.")) {
+                                    footer: Text("Approved mountains go live instantly on the public list. Merged mountains re-link contributor logs to an official entry and remove the duplicate.")) {
                                 ForEach(mountainsViewModel.pendingReviewPeaks) { peak in
                                     pendingPeakCard(for: peak)
                                         .padding(.vertical, 4)
@@ -455,7 +455,7 @@ struct MergeMountainSelectionSheet: View {
                 .background(Color.red.opacity(0.08))
                 
                 List {
-                    Section(header: Text("Official Catalog Target")) {
+                    Section(header: Text("Official Mountain on List")) {
                         ForEach(filteredPublicPeaks) { target in
                             Button {
                                 onSelectTarget(target)

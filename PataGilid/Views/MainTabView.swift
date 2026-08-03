@@ -21,7 +21,7 @@ struct MainTabView: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            // Tab 1: Mountain Catalog Explorer
+            // Tab 1: Mountain List Explorer
             MountainsListView()
                 .tabItem {
                     Label("Mountains", systemImage: "mountain.2.fill")
@@ -75,7 +75,7 @@ struct MainTabView: View {
                     }
                     
                     if authViewModel.isAdmin {
-                        Section(header: Text("Administrator Control Center"), footer: Text("As a verified PataGilid administrator, you can moderate, approve, or merge crowdsourced local mountains before they appear in the nationwide public catalog.")) {
+                        Section(header: Text("Administrator Control Center"), footer: Text("As a verified PataGilid administrator, you can moderate, approve, or merge crowdsourced local mountains before they appear on the nationwide public list.")) {
                             HStack {
                                 Image(systemName: "shield.checkmark.fill")
                                     .foregroundColor(.summitSteel)

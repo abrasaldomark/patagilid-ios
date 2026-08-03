@@ -15,6 +15,7 @@ struct MountainHeaderImageView: View {
     let mountain: Mountain
     var isThumbnail: Bool = false
     
+    @ObservedObject private var userPhotoService = UserMountainPhotoService.shared
     @State private var communityPhotoURL: URL? = nil
     @State private var isLoadingCommunityPhoto: Bool = true
     
@@ -47,9 +48,21 @@ struct MountainHeaderImageView: View {
         .clipped()
         .clipShape(RoundedRectangle(cornerRadius: isThumbnail ? 12 : 16))
         .onAppear {
-            if !isThumbnail {
-                fetchLatestHikerPhoto()
-            }
+            resolvePhoto()
+        }
+        .onChange(of: userPhotoService.customPhotos[mountain.id]) { _, _ in
+            resolvePhoto()
+        }
+    }
+    
+    private func resolvePhoto() {
+        if let urlStr = userPhotoService.photoUrl(for: mountain.id), let url = URL(string: urlStr) {
+            communityPhotoURL = url
+            isLoadingCommunityPhoto = false
+        } else if !isThumbnail {
+            fetchLatestHikerPhoto()
+        } else {
+            communityPhotoURL = nil
         }
     }
     

@@ -157,7 +157,7 @@ struct SummitLogsView: View {
                 Text("No Logs Yet")
                     .font(.title3)
                     .fontWeight(.bold)
-                Text("Open any mountain in the catalog and tap\n\"Log Climb\" to record your first ascent.")
+                Text("Open any mountain on the list and tap\n\"Add Climb\" to record your first ascent.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)

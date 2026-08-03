@@ -135,7 +135,7 @@ struct DonationQRView: View {
                     }
 
                     // MARK: - Thank You Note
-                    Text("Thank you for supporting PataGilid! 🏔️🙏\nEvery peso helps keep the catalog growing.")
+                    Text("Thank you for supporting PataGilid! 🏔️🙏\nEvery peso helps keep our mountain list growing.")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)

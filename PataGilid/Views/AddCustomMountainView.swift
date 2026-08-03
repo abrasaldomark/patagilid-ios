@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseAuth
+import PhotosUI
 
 struct AddCustomMountainView: View {
     @Environment(\.dismiss) private var dismiss
@@ -24,6 +25,12 @@ struct AddCustomMountainView: View {
     @State private var selectedDifficulty: String = "3/9 (Minor)"
     @State private var selectedClass: String = "Class 1-2"
     @State private var descriptionText: String = ""
+    
+    // Photo Upload State
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var selectedPhotoImage: UIImage?
+    @State private var selectedPhotoData: Data?
+    @State private var isUploadingPhoto: Bool = false
     
     // Status & Error handling
     @State private var isSubmitting: Bool = false
@@ -101,11 +108,11 @@ struct AddCustomMountainView: View {
                             .font(.title2)
                             .foregroundColor(.gliderBlue)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Contributing to PataGilid Directory")
+                            Text("Contributing to PataGilid List")
                                 .font(.subheadline)
                                 .fontWeight(.bold)
                                 .foregroundColor(.primary)
-                            Text("Use this form to submit an unlisted mountain or trail to the national catalog. Your submission will be reviewed by administrators before becoming visible to all mountaineers.")
+                            Text("Use this form to submit an unlisted mountain or trail to the national list. Your submission will be reviewed by administrators before becoming visible to all mountaineers.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -216,9 +223,65 @@ struct AddCustomMountainView: View {
                 }
                 
                 // MARK: - Optional Description
-                Section(header: Text("Brief Description (Optional)"), footer: Text("Submitted mountains are immediately available for your personal summit logs. They will display in the nationwide public catalog once verified by a PataGilid admin.")) {
+                Section(header: Text("Brief Description (Optional)"), footer: Text("Submitted mountains are immediately available for your personal summit logs. They will display on the nationwide public list once verified by a PataGilid admin.")) {
                     TextEditor(text: $descriptionText)
                         .frame(minHeight: 80)
+                }
+                
+                // MARK: - Personal Cover Photo
+                Section(header: Text("Personal Cover Photo (Optional)"), footer: Text("Set a custom cover image for this mountain. This photo is private and visible solely on your account.")) {
+                    if let uiImage = selectedPhotoImage {
+                        VStack(spacing: 12) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(height: 180)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            
+                            HStack {
+                                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                                    Label("Change Photo", systemImage: "arrow.triangle.2.circlepath")
+                                        .font(.subheadline)
+                                }
+                                
+                                Spacer()
+                                
+                                Button(role: .destructive) {
+                                    selectedPhotoItem = nil
+                                    selectedPhotoImage = nil
+                                    selectedPhotoData = nil
+                                } label: {
+                                    Label("Remove", systemImage: "trash")
+                                        .font(.subheadline)
+                                }
+                            }
+                            .padding(.horizontal, 4)
+                        }
+                        .padding(.vertical, 4)
+                    } else {
+                        PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                            HStack {
+                                Image(systemName: "camera.fill")
+                                    .foregroundColor(.gliderBlue)
+                                Text("Add Personal Cover Photo")
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                }
+                .onChange(of: selectedPhotoItem) { _, newItem in
+                    Task {
+                        if let data = try? await newItem?.loadTransferable(type: Data.self), let image = UIImage(data: data) {
+                            await MainActor.run {
+                                self.selectedPhotoData = data
+                                self.selectedPhotoImage = image
+                            }
+                        }
+                    }
                 }
                 
                 if let error = errorMessage {
@@ -257,7 +320,7 @@ struct AddCustomMountainView: View {
                             ProgressView()
                                 .tint(.white)
                                 .scaleEffect(1.5)
-                            Text("Saving Local Mountain...")
+                            Text(isUploadingPhoto ? "Saving photo..." : "Saving mountain...")
                                 .font(.headline)
                                 .foregroundColor(.white)
                         }
@@ -287,6 +350,16 @@ struct AddCustomMountainView: View {
         
         Task {
             do {
+                var uploadedPhotoUrl: String? = nil
+                if let photoData = selectedPhotoData {
+                    await MainActor.run { isUploadingPhoto = true }
+                    let timestamp = Int(Date().timeIntervalSince1970)
+                    let cleanFileName = mountainName.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "_")
+                    let fileName = "Mountain_\(cleanFileName)_\(timestamp)"
+                    uploadedPhotoUrl = try await GoogleDriveService.shared.uploadPhotoAsset(data: photoData, fileName: fileName)
+                    await MainActor.run { isUploadingPhoto = false }
+                }
+                
                 let newPeak = try await mountainsViewModel.submitCustomMountain(
                     name: mountainName.trimmingCharacters(in: .whitespacesAndNewlines),
                     elevationMASL: elevation,
@@ -298,6 +371,10 @@ struct AddCustomMountainView: View {
                     contributorEmail: authViewModel.currentUser?.email,
                     description: descriptionText.isEmpty ? "Community contributed hiking trail and mountain summit." : descriptionText
                 )
+                
+                if let driveUrl = uploadedPhotoUrl {
+                    try? await UserMountainPhotoService.shared.savePhoto(for: newPeak.id, photoUrl: driveUrl)
+                }
                 
                 await MainActor.run {
                     isSubmitting = false

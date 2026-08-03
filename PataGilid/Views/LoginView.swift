@@ -60,7 +60,7 @@ struct LoginView: View {
                             .foregroundColor(.primary)
                             .tracking(1.2)
                         
-                        Text("Your Guide to 2,688 Philippine Mountains")
+                        Text("Track Your Journey Across 2,688 Philippine Mountains")
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundColor(.summitSteel)

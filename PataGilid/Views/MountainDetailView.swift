@@ -10,11 +10,13 @@ import SwiftData
 import FirebaseFirestore
 import FirebaseAuth
 import MapKit
+import PhotosUI
 
 /// An in-depth summit dashboard presenting coordinates, difficulty metrics, regional classification, and crowdsourced GPS calibration triggers.
 struct MountainDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var authViewModel: AuthViewModel
+    @ObservedObject private var userPhotoService = UserMountainPhotoService.shared
     let mountain: Mountain
     @State private var showingLogModal: Bool = false
     /// Regenerated on every toolbar tap to guarantee a fresh @StateObject in the sheet.
@@ -24,6 +26,10 @@ struct MountainDetailView: View {
     @State private var showingInternalMap: Bool = false
     @State private var showingCoordinateContribution: Bool = false
     @State private var showCopiedToast: Bool = false
+    
+    @State private var selectedCoverPhotoItem: PhotosPickerItem?
+    @State private var isUploadingCoverPhoto: Bool = false
+    @State private var showPhotoUploadSuccessToast: Bool = false
     
     var body: some View {
         ScrollView {
@@ -149,7 +155,7 @@ struct MountainDetailView: View {
                                         .font(.subheadline)
                                         .fontWeight(.bold)
                                         .foregroundColor(.primary)
-                                    Text("Be the first hiker to pin this mountain! Locate its summit directly on our interactive map to guide future mountaineers.")
+                                    Text("Be the first hiker to pin this mountain! Locate its summit directly on the map to help complete our mountain list.")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -196,6 +202,60 @@ struct MountainDetailView: View {
                         .background(Color.secondary.opacity(0.1))
                         .cornerRadius(12)
                 }
+                
+                // Mountain Cover Photo Upload Box
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Mountain Photography")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "photo.stack.fill")
+                                .font(.title2)
+                                .foregroundColor(.gliderBlue)
+                            
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(userPhotoService.photoUrl(for: mountain.id) == nil ? "Add Personal Cover Photo" : "Personal Cover Photo Set")
+                                    .font(.subheadline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.primary)
+                                Text("Set a private cover photo for this mountain. This image is visible only on your account.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        PhotosPicker(selection: $selectedCoverPhotoItem, matching: .images) {
+                            HStack {
+                                Spacer()
+                                Image(systemName: isUploadingCoverPhoto ? "arrow.triangle.2.circlepath.camera.fill" : "camera.fill")
+                                Text(isUploadingCoverPhoto ? "Saving photo..." : (userPhotoService.photoUrl(for: mountain.id) == nil ? "Upload Photo" : "Update Photo"))
+                                    .fontWeight(.bold)
+                                Spacer()
+                            }
+                            .padding(.vertical, 10)
+                            .background(Color.gliderBlue)
+                            .foregroundColor(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                        .disabled(isUploadingCoverPhoto || authViewModel.currentUser == nil)
+                        
+                        if authViewModel.currentUser == nil {
+                            Text("Please sign in to set a personal cover photo.")
+                                .font(.caption2)
+                                .foregroundColor(.orange)
+                        }
+                    }
+                    .padding(14)
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(14)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.gliderBlue.opacity(0.3), lineWidth: 1)
+                    )
+                }
+                .padding(.bottom, 20)
             }
             .padding(.horizontal)
         }
@@ -207,8 +267,9 @@ struct MountainDetailView: View {
                     logSessionId = UUID()
                     showingLogModal = true
                 } label: {
-                    Image(systemName: "square.and.pencil")
-                        .fontWeight(.semibold)
+                    Text("Add Climb")
+                        .font(.subheadline)
+                        .fontWeight(.bold)
                 }
             }
         }
@@ -274,10 +335,62 @@ struct MountainDetailView: View {
                         }
                     }
                     .padding(.bottom, 30)
+                } else if showPhotoUploadSuccessToast {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.gliderBlue)
+                        Text("Personal Cover Photo Updated!")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color(.systemBackground).opacity(0.95))
+                    .foregroundColor(.primary)
+                    .clipShape(Capsule())
+                    .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                showPhotoUploadSuccessToast = false
+                            }
+                        }
+                    }
+                    .padding(.bottom, 30)
                 }
             },
             alignment: .bottom
         )
+        .onChange(of: selectedCoverPhotoItem) { _, newItem in
+            guard let newItem = newItem else { return }
+            Task {
+                await MainActor.run { isUploadingCoverPhoto = true }
+                do {
+                    if let data = try? await newItem.loadTransferable(type: Data.self) {
+                        let timestamp = Int(Date().timeIntervalSince1970)
+                        let cleanName = mountain.name.replacingOccurrences(of: " ", with: "_").replacingOccurrences(of: ".", with: "")
+                        let fileName = "Mountain_\(cleanName)_\(timestamp)"
+                        let driveUrl = try await GoogleDriveService.shared.uploadPhotoAsset(data: data, fileName: fileName)
+                        
+                        // Save exclusively to the active user's personal profile collection & local memory
+                        try await UserMountainPhotoService.shared.savePhoto(for: mountain.id, photoUrl: driveUrl)
+                        
+                        await MainActor.run {
+                            isUploadingCoverPhoto = false
+                            withAnimation { showPhotoUploadSuccessToast = true }
+                        }
+                    } else {
+                        await MainActor.run { isUploadingCoverPhoto = false }
+                    }
+                } catch {
+                    await MainActor.run {
+                        print("❌ Failed to upload cover photo: \(error.localizedDescription)")
+                        isUploadingCoverPhoto = false
+                    }
+                }
+            }
+        }
     }
     
     // MARK: - Map Jumping Helpers
@@ -390,7 +503,7 @@ struct CoordinateContributionView: View {
                     }
                 }
                 
-                Section(header: Text("Summit Location"), footer: Text("Tap 'Pin on Interactive Map' to visually locate and pin the mountain directly on the map.")) {
+                Section(header: Text("Summit Location"), footer: Text("Tap 'Pin on Map' to visually locate and pin the mountain summit.")) {
                     Button {
                         showingMapPicker = true
                     } label: {
@@ -398,7 +511,7 @@ struct CoordinateContributionView: View {
                             Image(systemName: "mappin.and.ellipse")
                                 .font(.headline)
                                 .foregroundColor(.white)
-                            Text("Pin on Interactive Map")
+                            Text("Pin on Map")
                                 .fontWeight(.bold)
                                 .foregroundColor(.white)
                             Spacer()
@@ -492,7 +605,7 @@ struct CoordinateContributionView: View {
               let lon = Double(lonString.trimmingCharacters(in: .whitespaces)),
               (-90.0...90.0).contains(lat),
               (-180.0...180.0).contains(lon) else {
-            errorMessage = "Please tap 'Pin on Interactive Map' to select the mountain's summit."
+            errorMessage = "Please tap 'Pin on Map' to select the mountain's summit."
             return
         }
         
@@ -566,7 +679,7 @@ struct SpecCard: View {
     }
 }
 
-/// An interactive MapKit view where users can tap anywhere on satellite imagery to pin a peak's summit and extract coordinates.
+/// A MapKit view where users can tap anywhere on satellite imagery to pin a mountain's summit and extract coordinates.
 struct InteractiveCoordinatePickerView: View {
     let peakName: String
     @Environment(\.dismiss) private var dismiss

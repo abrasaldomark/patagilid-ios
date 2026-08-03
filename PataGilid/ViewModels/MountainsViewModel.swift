@@ -1,5 +1,5 @@
 //
-//  PeaksViewModel.swift
+//  MountainsViewModel.swift
 //  PataGilid
 //
 //  Created by Mark Abrasaldo on 7/27/26.
@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import SwiftData
 import FirebaseFirestore
 
 enum PeakSortOrder: String, CaseIterable {
@@ -16,7 +17,7 @@ enum PeakSortOrder: String, CaseIterable {
 }
 
 @MainActor
-class PeaksViewModel: ObservableObject {
+class MountainsViewModel: ObservableObject {
     @Published var allPeaks: [Mountain] = []
     @Published var searchText: String = ""
     @Published var selectedIslandGroup: IslandGroup? = nil
@@ -24,17 +25,13 @@ class PeaksViewModel: ObservableObject {
     @Published var sortOrder: PeakSortOrder = .highestFirst
     @Published var isLoading: Bool = false
     @Published var stagedPeakIds: Set<String> = []
+    @Published var pendingGPSSubmissions: [CoordinateSubmission] = []
     
-    static weak var shared: PeaksViewModel?
+    static weak var shared: MountainsViewModel?
     
-    private var mountainsListener: ListenerRegistration?
-    private var latestCommunityPeaks: [Mountain] = []
+    private var modelContext: ModelContext?
     
-    deinit {
-        mountainsListener?.remove()
-    }
-    
-    /// Only approved mountains (or legacy seeded peaks) display in the general catalog.
+    /// Only approved mountains display in the general public catalog.
     var publicPeaks: [Mountain] {
         return allPeaks.filter { $0.isPubliclyApproved }
     }
@@ -42,6 +39,16 @@ class PeaksViewModel: ObservableObject {
     /// Mountains awaiting admin verification in the review queue.
     var pendingReviewPeaks: [Mountain] {
         return allPeaks.filter { !$0.isPubliclyApproved }
+    }
+    
+    /// Total combined count of pending mountain submissions and GPS calibrations for administrative moderation.
+    var totalPendingReviewsCount: Int {
+        return pendingReviewPeaks.count + pendingGPSSubmissions.count
+    }
+    
+    /// Whether there are any pending items awaiting administrative moderation.
+    var hasPendingReviews: Bool {
+        return totalPendingReviewsCount > 0
     }
     
     /// Returns available peaks for logging: public peaks plus any pending peaks submitted by this user.
@@ -73,7 +80,7 @@ class PeaksViewModel: ObservableObject {
             result = result.filter {
                 $0.name.localizedCaseInsensitiveContains(searchText) ||
                 $0.region.localizedCaseInsensitiveContains(searchText) ||
-                $0.description.localizedCaseInsensitiveContains(searchText)
+                $0.descriptionText.localizedCaseInsensitiveContains(searchText)
             }
         }
         
@@ -92,73 +99,54 @@ class PeaksViewModel: ObservableObject {
     
     init() {
         Self.shared = self
-        loadPeaks()
     }
     
-    func loadPeaks() {
-        isLoading = true
-        // Instantly load bundled or cached downloaded peaks without burning network or Firestore read quotas!
-        self.allPeaks = MountainDataSeeder.shared.officialMountains
+    // MARK: - SwiftData & Delta-Sync Integration
+    
+    /// Binds the active SwiftData ModelContext and performs instant local read + cost-optimized Firestore Delta-Sync.
+    func synchronize(in context: ModelContext) async {
+        self.modelContext = context
+        
+        // 1. Instantly load from local high-speed SwiftData storage
+        self.isLoading = true
+        refreshFromSwiftData(in: context)
+        if !allPeaks.isEmpty {
+            self.isLoading = false
+        }
+        
+        // 2. Perform cost-optimized Delta-Sync in Cloud Firestore ("Give me only mountains where updatedAt > local timestamp")
+        await MountainDataSeeder.shared.synchronizeWithFirestore(in: context)
+        
+        // 3. Update active memory catalog with newly synchronized records
+        refreshFromSwiftData(in: context)
+        await fetchPendingGPSSubmissions()
         self.isLoading = false
-        
-        // Silently synchronize from Google Firebase Cloud CDN in the background
-        Task {
-            let updated = await MountainDataSeeder.shared.fetchLatestCatalogFromFirebase()
-            if updated {
-                await MainActor.run {
-                    self.refreshCombinedPeaks()
-                }
-            }
-        }
-        
-        // Listen for dynamic community submissions in Firestore
-        mountainsListener?.remove()
+    }
+    
+    /// Fetches community submitted GPS coordinate calibrations awaiting administrative moderation from Cloud Firestore.
+    func fetchPendingGPSSubmissions() async {
         let db = Firestore.firestore()
-        mountainsListener = db.collection("mountains").addSnapshotListener { [weak self] snapshot, error in
-            guard let self = self, let documents = snapshot?.documents else {
-                if let error = error {
-                    print("⚠️ Error listening to community mountains: \(error.localizedDescription)")
-                }
-                return
-            }
-            
-            var communityPeaks: [Mountain] = []
-            for doc in documents {
-                do {
-                    let peak = try doc.data(as: Mountain.self)
-                    if peak.isApproved == false {
-                        print("🔔 Found pending community peak in Cloud Firestore: \(peak.name) (\(peak.id))")
-                    }
-                    communityPeaks.append(peak)
-                } catch {
-                    print("⚠️ Failed to decode peak document \(doc.documentID): \(error)")
-                }
-            }
-            
-            Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                self.latestCommunityPeaks = communityPeaks
-                self.refreshCombinedPeaks()
-            }
+        if let snapshot = try? await db.collection("coordinate_submissions")
+            .whereField("status", isEqualTo: "pending")
+            .getDocuments() {
+            let items = snapshot.documents.compactMap { try? $0.data(as: CoordinateSubmission.self) }
+            self.pendingGPSSubmissions = items
         }
     }
     
-    func refreshCombinedPeaks() {
-        let staged = self.allPeaks.filter { self.stagedPeakIds.contains($0.id) }
-        var combined = MountainDataSeeder.shared.officialMountains
-        for peak in latestCommunityPeaks {
-            if let idx = combined.firstIndex(where: { $0.id == peak.id || ($0.name.caseInsensitiveCompare(peak.name) == .orderedSame && $0.region == peak.region) }) {
-                combined[idx] = peak
-            } else {
-                combined.append(peak)
+    func refreshFromSwiftData(in context: ModelContext) {
+        var descriptor = FetchDescriptor<Mountain>(sortBy: [SortDescriptor(\.name)])
+        if let stored = try? context.fetch(descriptor) {
+            var combined = stored
+            // Retain any uncommitted peaks currently staged in memory during log creation
+            let staged = self.allPeaks.filter { self.stagedPeakIds.contains($0.id) }
+            for stagedPeak in staged {
+                if !combined.contains(where: { $0.id == stagedPeak.id }) {
+                    combined.append(stagedPeak)
+                }
             }
+            self.allPeaks = combined
         }
-        for stagedPeak in staged {
-            if !combined.contains(where: { $0.id == stagedPeak.id }) {
-                combined.append(stagedPeak)
-            }
-        }
-        self.allPeaks = combined
     }
     
     func selectIslandGroup(_ group: IslandGroup?) {
@@ -182,7 +170,7 @@ class PeaksViewModel: ObservableObject {
     
     // MARK: - Community Submission & Moderation Actions
     
-    /// Submits a lightweight custom mountain to Firestore with pending approval status.
+    /// Submits a lightweight custom mountain with pending approval status and unmapped (`nil`) GPS coordinates.
     func submitCustomMountain(name: String, elevationMASL: Int, region: String, islandGroup: IslandGroup, difficultyLevel: String, trailClass: String, contributorId: String, contributorEmail: String?, description: String = "Community contributed mountain trail and peak.") async throws -> Mountain {
         let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let slug = cleanName.lowercased()
@@ -197,15 +185,16 @@ class PeaksViewModel: ObservableObject {
             name: cleanName,
             description: description,
             elevationMASL: elevationMASL,
-            latitude: 14.5995, // Default/approx coordinate fallback
-            longitude: 120.9842,
+            latitude: nil, // Clean slate: no estimated/inaccurate coordinates!
+            longitude: nil,
             region: region.isEmpty ? "Local Region" : region,
             islandGroup: islandGroup,
             difficultyLevel: difficultyLevel,
             trailClass: trailClass,
             isApproved: false,
             contributorId: contributorId,
-            contributorEmail: contributorEmail
+            contributorEmail: contributorEmail,
+            updatedAt: Date()
         )
         
         // Commit-on-Climb: Stage in temporary device memory only! Do NOT push to Firestore or Admin Queue until an ascent log is saved.
@@ -222,9 +211,14 @@ class PeaksViewModel: ObservableObject {
         guard stagedPeakIds.contains(mountain.id) else { return }
         let db = Firestore.firestore()
         do {
+            mountain.updatedAt = Date()
             try await db.collection("mountains").document(mountain.id).setData(from: mountain)
+            if let context = modelContext {
+                context.insert(mountain)
+                try? context.save()
+            }
             stagedPeakIds.remove(mountain.id)
-            print("🚀 Commit-on-Climb: Successfully pushed staged peak to Cloud Firestore & Admin Moderation Queue upon log save: \(mountain.id)")
+            print("🚀 Commit-on-Climb: Successfully pushed staged peak to Cloud Firestore & SwiftData upon log save: \(mountain.id)")
         } catch {
             print("⚠️ Failed to commit staged mountain: \(error.localizedDescription)")
         }
@@ -240,21 +234,22 @@ class PeaksViewModel: ObservableObject {
     
     /// Approves a submitted mountain, making it live in the global catalog.
     func approveMountain(_ mountain: Mountain) async throws {
-        var updated = mountain
-        updated.isApproved = true
+        mountain.isApproved = true
+        mountain.updatedAt = Date()
         
         let db = Firestore.firestore()
-        try db.collection("mountains").document(mountain.id).setData(from: updated)
-        
-        if let idx = allPeaks.firstIndex(where: { $0.id == mountain.id }) {
-            allPeaks[idx].isApproved = true
-        }
+        try db.collection("mountains").document(mountain.id).setData(from: mountain)
+        try? modelContext?.save()
     }
     
     /// Declines and removes an inappropriately submitted or rejected mountain.
     func declineMountain(_ mountain: Mountain) async throws {
         let db = Firestore.firestore()
         try await db.collection("mountains").document(mountain.id).delete()
+        if let context = modelContext {
+            context.delete(mountain)
+            try? context.save()
+        }
         allPeaks.removeAll { $0.id == mountain.id }
     }
     
@@ -264,8 +259,8 @@ class PeaksViewModel: ObservableObject {
         
         // Use a collection group query to locate all HikeLog records referencing the duplicate mountain
         let snapshot = try await db.collectionGroup("hikeLogs")
-            .whereField("mountainId", isEqualTo: duplicate.id)
-            .getDocuments()
+        .whereField("mountainId", isEqualTo: duplicate.id)
+        .getDocuments()
         
         // Update each log to point to the canonical approved mountain ID
         for doc in snapshot.documents {
@@ -274,6 +269,10 @@ class PeaksViewModel: ObservableObject {
         
         // Delete the duplicate peak document from the catalog
         try await db.collection("mountains").document(duplicate.id).delete()
+        if let context = modelContext {
+            context.delete(duplicate)
+            try? context.save()
+        }
         allPeaks.removeAll { $0.id == duplicate.id }
     }
 }

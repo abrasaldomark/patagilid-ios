@@ -10,7 +10,7 @@ import SwiftUI
 /// The hiker's personal activity feed — a chronological list of recorded climb attempts.
 struct SummitLogsView: View {
     @StateObject private var viewModel = SummitLogsViewModel()
-    @EnvironmentObject var peaksViewModel: PeaksViewModel
+    @EnvironmentObject var mountainsViewModel: MountainsViewModel
     @State private var isSearchVisible: Bool = false
     
     var body: some View {
@@ -75,7 +75,7 @@ struct SummitLogsView: View {
                                         Text("All Regions")
                                     }
                                     
-                                    ForEach(viewModel.availableRegions(using: peaksViewModel.allPeaks), id: \.self) { region in
+                                    ForEach(viewModel.availableRegions(using: mountainsViewModel.allPeaks), id: \.self) { region in
                                         Button(action: {
                                             viewModel.selectRegion(region)
                                         }) {
@@ -229,7 +229,7 @@ struct SummitLogsView: View {
             }
             .background(Color.secondary.opacity(0.06))
             
-            let filteredLogs = viewModel.filteredAndSortedLogs(using: peaksViewModel.allPeaks)
+            let filteredLogs = viewModel.filteredAndSortedLogs(using: mountainsViewModel.allPeaks)
             
             // Log Count Banner
             HStack {
@@ -262,7 +262,7 @@ struct SummitLogsView: View {
             } else {
                 List {
                     ForEach(filteredLogs) { log in
-                        let mountain = peaksViewModel.allPeaks.first(where: { $0.id == log.mountainId }) ?? viewModel.mountain(for: log.mountainId)
+                        let mountain = mountainsViewModel.allPeaks.first(where: { $0.id == log.mountainId }) ?? viewModel.mountain(for: log.mountainId)
                         NavigationLink(destination: SummitLogDetailView(log: log, mountain: mountain)) {
                             SummitLogRow(log: log, mountain: mountain)
                         }

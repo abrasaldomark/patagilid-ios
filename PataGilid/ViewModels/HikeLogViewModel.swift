@@ -235,7 +235,7 @@ class HikeLogViewModel: ObservableObject {
         Task {
             do {
                 // Commit-on-Climb: If this is an uncommitted custom mountain staged in local memory, commit it to Firestore now!
-                await PeaksViewModel.shared?.commitStagedMountainIfNeeded(mountain)
+                await MountainsViewModel.shared?.commitStagedMountainIfNeeded(mountain)
                 
                 var newlyUploadedUrls: [String] = []
                 if !selectedPhotoAssets.isEmpty {

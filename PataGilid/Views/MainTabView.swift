@@ -6,12 +6,14 @@
 //
 
 import SwiftUI
+import SwiftData
 import FirebaseAuth
 
 /// The main dashboard application screen after a user logs in via Google Sign-In.
 struct MainTabView: View {
+    @Environment(\.modelContext) private var modelContext
     @ObservedObject var authViewModel: AuthViewModel
-    @StateObject private var peaksViewModel = PeaksViewModel()
+    @StateObject private var mountainsViewModel = MountainsViewModel()
     @State private var showAdminQueue: Bool = false
     @State private var showDonationSheet: Bool = false
     @State private var selectedTab: Int = 0
@@ -19,12 +21,16 @@ struct MainTabView: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            // Tab 1: Peak Catalog Explorer
-            PeaksListView()
+            // Tab 1: Mountain Catalog Explorer
+            MountainsListView()
                 .tabItem {
-                    Label("Peaks", systemImage: "mountain.2.fill")
+                    Label("Mountains", systemImage: "mountain.2.fill")
                 }
                 .tag(0)
+                .task {
+                    await mountainsViewModel.synchronize(in: modelContext)
+                }
+
             
             // Tab 2: Summit Logs
             SummitLogsView()
@@ -94,12 +100,12 @@ struct MainTabView: View {
                                         .fontWeight(.semibold)
                                         .foregroundColor(.primary)
                                     Spacer()
-                                    if peaksViewModel.pendingReviewPeaks.isEmpty {
+                                    if !mountainsViewModel.hasPendingReviews {
                                         Text("0 Pending")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                     } else {
-                                        Text("\(peaksViewModel.pendingReviewPeaks.count)")
+                                        Text("\(mountainsViewModel.totalPendingReviewsCount)")
                                             .font(.caption)
                                             .fontWeight(.bold)
                                             .padding(.horizontal, 8)
@@ -170,6 +176,11 @@ struct MainTabView: View {
                     }
                 }
                 .navigationTitle("Profile & Settings")
+                .task {
+                    if authViewModel.isAdmin {
+                        await mountainsViewModel.fetchPendingGPSSubmissions()
+                    }
+                }
             }
             .tabItem {
                 Label("Profile", systemImage: "person.crop.circle.fill")
@@ -178,10 +189,10 @@ struct MainTabView: View {
         }
         .tint(.gliderBlue)
         .environmentObject(authViewModel)
-        .environmentObject(peaksViewModel)
+        .environmentObject(mountainsViewModel)
         .sheet(isPresented: $showAdminQueue) {
             AdminModerationQueueView()
-                .environmentObject(peaksViewModel)
+                .environmentObject(mountainsViewModel)
         }
         .sheet(isPresented: $showDonationSheet) {
             DonationQRView()

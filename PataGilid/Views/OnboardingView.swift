@@ -27,7 +27,7 @@ struct OnboardingView: View {
             systemImage: "mountain.2.circle.fill",
             iconTint: .gliderBlue,
             badgeText: "EXPLORE",
-            title: "Discover Philippine Peaks",
+            title: "Discover Philippine Mountains",
             subtitle: "Explore over 2,300 official mountains across Luzon, Visayas, and Mindanao with precise elevations and trail difficulty ratings."
         ),
         OnboardingPage(
@@ -35,7 +35,7 @@ struct OnboardingView: View {
             iconTint: .summitSteel,
             badgeText: "CURATE",
             title: "Filter & Plan Ascents",
-            subtitle: "Effortlessly sort peaks by elevation or filter by island groups and provinces to curate your personal hiking bucket list."
+            subtitle: "Effortlessly sort mountains by elevation or filter by island groups and provinces to curate your personal hiking bucket list."
         ),
         OnboardingPage(
             systemImage: "figure.hiking",
@@ -185,7 +185,7 @@ struct OnboardingView: View {
                     }
                 } label: {
                     HStack(spacing: 10) {
-                        Text("Start Exploring Peaks")
+                        Text("Start Exploring Mountains")
                             .font(.headline)
                             .fontWeight(.bold)
                         Image(systemName: "arrow.right.circle.fill")

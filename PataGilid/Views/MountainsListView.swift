@@ -1,5 +1,5 @@
 //
-//  PeaksListView.swift
+//  MountainsListView.swift
 //  PataGilid
 //
 //  Created by Mark Abrasaldo on 7/27/26.
@@ -8,8 +8,8 @@
 import SwiftUI
 
 /// An interactive, responsive explorer presenting all 2,688 Philippine mountain peaks with search, filtering, and sorting.
-struct PeaksListView: View {
-    @EnvironmentObject var viewModel: PeaksViewModel
+struct MountainsListView: View {
+    @EnvironmentObject var viewModel: MountainsViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
     
     @State private var showAddCustomPeak: Bool = false
@@ -26,15 +26,15 @@ struct PeaksListView: View {
                         showAdminQueue = true
                     } label: {
                         HStack(spacing: 12) {
-                            Image(systemName: viewModel.pendingReviewPeaks.isEmpty ? "shield.checkmark.fill" : "shield.checkerboard")
+                            Image(systemName: !viewModel.hasPendingReviews ? "shield.checkmark.fill" : "shield.checkerboard")
                                 .font(.title2)
                                 .foregroundColor(.white)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(viewModel.pendingReviewPeaks.isEmpty ? "Admin Superpowers Active" : "🔔 Admin Review Queue")
+                                Text(!viewModel.hasPendingReviews ? "Admin Superpowers Active" : "🔔 Admin Review Queue")
                                     .font(.subheadline)
                                     .fontWeight(.bold)
                                     .foregroundColor(.white)
-                                Text(viewModel.pendingReviewPeaks.isEmpty ? "0 pending community submissions • All clear!" : "\(viewModel.pendingReviewPeaks.count) community peak(s) awaiting verification • Tap to Action")
+                                Text(!viewModel.hasPendingReviews ? "0 pending community submissions • All clear!" : "\(viewModel.totalPendingReviewsCount) community submission(s) awaiting verification • Tap to Action")
                                     .font(.caption2)
                                     .foregroundColor(.white.opacity(0.95))
                             }
@@ -46,11 +46,11 @@ struct PeaksListView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
                         .background(
-                            viewModel.pendingReviewPeaks.isEmpty ?
+                            !viewModel.hasPendingReviews ?
                             LinearGradient(gradient: Gradient(colors: [Color.gliderBlue, Color.summitSteel]), startPoint: .leading, endPoint: .trailing) :
                             LinearGradient(gradient: Gradient(colors: [Color.orange, Color.red]), startPoint: .leading, endPoint: .trailing)
                         )
-                        .shadow(color: (viewModel.pendingReviewPeaks.isEmpty ? Color.gliderBlue : Color.red).opacity(0.3), radius: 4, x: 0, y: 2)
+                        .shadow(color: (!viewModel.hasPendingReviews ? Color.gliderBlue : Color.red).opacity(0.3), radius: 4, x: 0, y: 2)
                     }
                     .buttonStyle(.plain)
                 }
@@ -94,7 +94,7 @@ struct PeaksListView: View {
                 
                 // Peak Count Banner
                 HStack {
-                    Text("Showing \(viewModel.filteredAndSortedPeaks.count) of \(viewModel.publicPeaks.count) Peaks")
+                    Text("Showing \(viewModel.filteredAndSortedPeaks.count) of \(viewModel.publicPeaks.count) Mountains")
                         .font(.caption)
                         .foregroundColor(.gray)
                     Spacer()
@@ -102,13 +102,23 @@ struct PeaksListView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 6)
                 
-                // Mountain List & Empty Search State
-                if viewModel.filteredAndSortedPeaks.isEmpty {
+                // Mountain List, Skeleton Loader & Empty Search State
+                if viewModel.isLoading && viewModel.filteredAndSortedPeaks.isEmpty {
+                    List {
+                        ForEach(0..<10, id: \.self) { _ in
+                            MountainSkeletonRowView()
+                                .listRowSeparator(.visible)
+                                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                                .allowsHitTesting(false)
+                        }
+                    }
+                    .listStyle(.plain)
+                } else if viewModel.filteredAndSortedPeaks.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "mountain.2.fill")
                             .font(.system(size: 56))
                             .foregroundColor(.secondary.opacity(0.4))
-                        Text(viewModel.searchText.isEmpty ? "No peaks found" : "No peaks matched '\(viewModel.searchText)'")
+                        Text(viewModel.searchText.isEmpty ? "No mountains found" : "No mountains matched '\(viewModel.searchText)'")
                             .font(.headline)
                             .foregroundColor(.primary)
                         Text("Can't find the local mountain or trail you climbed? Contribute it directly to PataGilid!")
@@ -122,7 +132,7 @@ struct PeaksListView: View {
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "plus.circle.fill")
-                                Text("Contribute Missing Peak")
+                                Text("Contribute Missing Mountain")
                             }
                             .font(.subheadline)
                             .fontWeight(.bold)
@@ -141,8 +151,8 @@ struct PeaksListView: View {
                 } else {
                     List {
                         ForEach(viewModel.filteredAndSortedPeaks) { mountain in
-                            NavigationLink(destination: PeakDetailView(mountain: mountain)) {
-                                PeakRowView(mountain: mountain)
+                            NavigationLink(destination: MountainDetailView(mountain: mountain)) {
+                                MountainRowView(mountain: mountain)
                             }
                             .listRowSeparator(.visible)
                             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
@@ -152,9 +162,9 @@ struct PeaksListView: View {
                 }
             }
             .conditionalSearchable(text: $viewModel.searchText, isPresented: $isSearchVisible, prompt: "Search by Name, Region (e.g. Region 6), or Details")
-            .navigationTitle("Philippine Peaks")
+            .navigationTitle("Philippine Mountains")
             .navigationDestination(item: $selectedNewPeak) { peak in
-                PeakDetailView(mountain: peak)
+                MountainDetailView(mountain: peak)
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -163,7 +173,7 @@ struct PeaksListView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "plus.circle.fill")
-                            Text("Contribute Peak")
+                            Text("Contribute Mountain")
                         }
                         .font(.subheadline)
                         .fontWeight(.semibold)
@@ -233,6 +243,11 @@ struct PeaksListView: View {
                 AdminModerationQueueView()
                     .environmentObject(viewModel)
             }
+            .task {
+                if authViewModel.isAdmin {
+                    await viewModel.fetchPendingGPSSubmissions()
+                }
+            }
         }
     }
 }
@@ -271,7 +286,7 @@ struct FilterPill: View {
     }
 }
 
-struct PeakRowView: View {
+struct MountainRowView: View {
     let mountain: Mountain
     
     var body: some View {
@@ -320,8 +335,66 @@ struct PeakRowView: View {
     }
 }
 
+/// Shimmering skeleton loader row with a traveling highlight wave while mountains are downloading from Cloud Firestore.
+struct MountainSkeletonRowView: View {
+    var body: some View {
+        HStack(spacing: 14) {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.gray.opacity(0.45))
+                .frame(width: 54, height: 54)
+            
+            VStack(alignment: .leading, spacing: 8) {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.gray.opacity(0.50))
+                    .frame(width: 160, height: 16)
+                
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.gray.opacity(0.38))
+                    .frame(width: 95, height: 12)
+            }
+            
+            Spacer()
+            
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.gray.opacity(0.42))
+                .frame(width: 68, height: 36)
+        }
+        .padding(.vertical, 2)
+        .modifier(SkeletonShimmerModifier())
+    }
+}
+
+struct SkeletonShimmerModifier: ViewModifier {
+    @State private var phase: CGFloat = -1.0
+    
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                GeometryReader { geometry in
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.clear,
+                            Color.white.opacity(0.85),
+                            Color.clear
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .frame(width: geometry.size.width * 2)
+                    .offset(x: -geometry.size.width + (phase * geometry.size.width * 2))
+                }
+            )
+            .mask(content)
+            .onAppear {
+                withAnimation(.linear(duration: 1.3).repeatForever(autoreverses: false)) {
+                    phase = 1.0
+                }
+            }
+    }
+}
+
 #Preview {
-    PeaksListView()
-        .environmentObject(PeaksViewModel())
+    MountainsListView()
+        .environmentObject(MountainsViewModel())
         .environmentObject(AuthViewModel())
 }

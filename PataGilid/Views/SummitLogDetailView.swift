@@ -128,8 +128,9 @@ struct SummitLogDetailView: View {
                         showingInternalMap = true
                     } label: {
                         HStack(spacing: 4) {
+                            let coordsText = (mountain.latitude != nil && mountain.longitude != nil) ? String(format: "%.4f, %.4f", mountain.latitude!, mountain.longitude!) : "Coordinates needed"
                             detailRow(icon: "location.circle.fill", iconColor: .gliderBlue,
-                                      label: "Coordinates", value: String(format: "%.4f, %.4f", mountain.latitude, mountain.longitude))
+                                      label: "Coordinates", value: coordsText)
                             Image(systemName: "chevron.right")
                                 .font(.caption2)
                                 .fontWeight(.bold)

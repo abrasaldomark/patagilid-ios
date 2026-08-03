@@ -54,12 +54,27 @@ class SummitLogsViewModel: ObservableObject {
     // MARK: - Mountain Lookup
     
     func mountain(for id: String) -> Mountain? {
-        mountainMap[id]
+        if let match = mountainMap[id] {
+            return match
+        }
+        if let match = MountainsViewModel.shared?.allPeaks.first(where: { $0.id == id }) {
+            mountainMap[id] = match
+            return match
+        }
+        return nil
+    }
+    
+    func refreshMountainMap() {
+        let all = MountainsViewModel.shared?.allPeaks ?? []
+        var newMap: [String: Mountain] = [:]
+        for peak in all {
+            newMap[peak.id] = peak
+        }
+        self.mountainMap = newMap
     }
     
     private func buildMountainMap() {
-        let all = MountainDataSeeder.shared.officialMountains
-        mountainMap = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
+        refreshMountainMap()
     }
     
     // MARK: - Filtering & Sorting Logic

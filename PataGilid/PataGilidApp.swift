@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import FirebaseCore
 import GoogleMaps
 import GoogleSignIn
@@ -50,5 +51,7 @@ struct PataGilidApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: [Mountain.self])
     }
 }
+

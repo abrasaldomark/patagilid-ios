@@ -27,8 +27,7 @@ class AuthViewModel: ObservableObject {
     /// Determines whether the current authenticated user has administrative moderation superpowers.
     var isAdmin: Bool {
         guard let email = currentUser?.email?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) else { return false }
-        let adminEmails: Set<String> = ["markabrasaldo@gmail.com", "mark.abrasaldo@gmail.com", "hustlas4ever@gmail.com"]
-        return adminEmails.contains(email) || email.hasSuffix("@patagilid.com")
+        return email == "abrasaldomark@gmail.com"
     }
     
     var userDisplayName: String {

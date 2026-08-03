@@ -43,7 +43,7 @@ struct HikeLogCreationView: View {
                     Button("Cancel") {
                         if logToEdit == nil {
                             // Commit-on-Climb: If user cancels recording an ascent for an uncommitted custom mountain, discard it!
-                            PeaksViewModel.shared?.discardStagedMountainIfNeeded(mountain)
+                            MountainsViewModel.shared?.discardStagedMountainIfNeeded(mountain)
                         }
                         dismiss()
                     }

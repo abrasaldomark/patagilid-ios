@@ -11,7 +11,7 @@ import FirebaseAuth
 struct AddCustomMountainView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var authViewModel: AuthViewModel
-    @EnvironmentObject var peaksViewModel: PeaksViewModel
+    @EnvironmentObject var mountainsViewModel: MountainsViewModel
     
     /// Callback when a new mountain is successfully created or selected from suggestions
     var onMountainSelected: (Mountain) -> Void
@@ -35,7 +35,7 @@ struct AddCustomMountainView: View {
     
     /// Dynamically provides official Philippine regions tailored to the selected Island Group
     private var availableRegionsForSelectedIsland: [String] {
-        let dynamicRegions = peaksViewModel.publicPeaks
+        let dynamicRegions = mountainsViewModel.publicPeaks
             .filter { $0.islandGroup == selectedIslandGroup }
             .map { $0.region }
             .removingDuplicates()
@@ -85,7 +85,7 @@ struct AddCustomMountainView: View {
         
         guard cleanName.count >= 3 else { return [] }
         
-        return peaksViewModel.publicPeaks.filter { peak in
+        return mountainsViewModel.publicPeaks.filter { peak in
             peak.name.localizedCaseInsensitiveContains(cleanName) ||
             cleanName.localizedCaseInsensitiveContains(peak.name.replacingOccurrences(of: "Mt. ", with: ""))
         }.prefix(3).map { $0 }
@@ -123,7 +123,7 @@ struct AddCustomMountainView: View {
                                 Image(systemName: "magnifyingglass.circle.fill")
                                     .foregroundColor(.orange)
                                     .font(.title3)
-                                Text("Similar Peaks Found in PataGilid")
+                                Text("Similar Mountains Found in PataGilid")
                                     .font(.subheadline)
                                     .fontWeight(.bold)
                                     .foregroundColor(.primary)
@@ -171,7 +171,7 @@ struct AddCustomMountainView: View {
                 
                 // MARK: - Core Mountain Details
                 Section(header: Text("Mountain Identification")) {
-                    TextField("Peak Name (e.g. Mt. Tagapo)", text: $mountainName)
+                    TextField("Mountain Name (e.g. Mt. Tagapo)", text: $mountainName)
                         .autocapitalization(.words)
                     
                     TextField("Elevation in MASL (e.g. 270)", text: $elevationText)
@@ -234,7 +234,7 @@ struct AddCustomMountainView: View {
                     region = first
                 }
             }
-            .navigationTitle("Contribute Peak")
+            .navigationTitle("Contribute Mountain")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -257,7 +257,7 @@ struct AddCustomMountainView: View {
                             ProgressView()
                                 .tint(.white)
                                 .scaleEffect(1.5)
-                            Text("Saving Local Peak...")
+                            Text("Saving Local Mountain...")
                                 .font(.headline)
                                 .foregroundColor(.white)
                         }
@@ -287,7 +287,7 @@ struct AddCustomMountainView: View {
         
         Task {
             do {
-                let newPeak = try await peaksViewModel.submitCustomMountain(
+                let newPeak = try await mountainsViewModel.submitCustomMountain(
                     name: mountainName.trimmingCharacters(in: .whitespacesAndNewlines),
                     elevationMASL: elevation,
                     region: region.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -296,7 +296,7 @@ struct AddCustomMountainView: View {
                     trailClass: selectedClass,
                     contributorId: userId,
                     contributorEmail: authViewModel.currentUser?.email,
-                    description: descriptionText.isEmpty ? "Community contributed hiking trail and mountain peak." : descriptionText
+                    description: descriptionText.isEmpty ? "Community contributed hiking trail and mountain summit." : descriptionText
                 )
                 
                 await MainActor.run {

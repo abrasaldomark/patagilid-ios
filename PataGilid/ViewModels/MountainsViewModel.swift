@@ -123,7 +123,7 @@ class MountainsViewModel: ObservableObject {
         }
         
         // 2. Perform cost-optimized Delta-Sync in Cloud Firestore ("Give me only mountains where updatedAt > local timestamp")
-        await MountainDataSeeder.shared.synchronizeWithFirestore(in: context) { [weak self] processed, total in
+        await MountainSyncService.shared.synchronizeWithFirestore(in: context) { [weak self] processed, total in
             guard let self = self else { return }
             self.downloadProgress = total > 0 ? Double(processed) / Double(total) : 1.0
             self.refreshFromSwiftData(in: context)

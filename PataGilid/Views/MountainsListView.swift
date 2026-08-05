@@ -120,10 +120,10 @@ struct MountainsListView: View {
                 }
                 
                 // Mountain List, Skeleton Loader & Empty Search State
-                if viewModel.isLoading && viewModel.filteredAndSortedPeaks.isEmpty {
+                if (viewModel.isLoading || viewModel.isDownloading) && viewModel.filteredAndSortedPeaks.isEmpty {
                     List {
-                        ForEach(0..<10, id: \.self) { _ in
-                            MountainSkeletonRowView()
+                        ForEach(0..<8, id: \.self) { _ in
+                            SkeletonMountainCardView()
                                 .listRowSeparator(.visible)
                                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                                 .allowsHitTesting(false)
@@ -346,65 +346,6 @@ struct MountainRowView: View {
         }
     }
 }
-
-/// Shimmering skeleton loader row with a traveling highlight wave while mountains are downloading from Cloud Firestore.
-struct MountainSkeletonRowView: View {
-    var body: some View {
-        HStack(spacing: 14) {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color.gray.opacity(0.45))
-                .frame(width: 54, height: 54)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.gray.opacity(0.50))
-                    .frame(width: 160, height: 16)
-                
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.gray.opacity(0.38))
-                    .frame(width: 95, height: 12)
-            }
-            
-            Spacer()
-            
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.gray.opacity(0.42))
-                .frame(width: 68, height: 36)
-        }
-        .padding(.vertical, 2)
-        .modifier(SkeletonShimmerModifier())
-    }
-}
-
-struct SkeletonShimmerModifier: ViewModifier {
-    @State private var phase: CGFloat = -1.0
-    
-    func body(content: Content) -> some View {
-        content
-            .overlay(
-                GeometryReader { geometry in
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color.clear,
-                            Color.white.opacity(0.85),
-                            Color.clear
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .frame(width: geometry.size.width * 2)
-                    .offset(x: -geometry.size.width + (phase * geometry.size.width * 2))
-                }
-            )
-            .mask(content)
-            .onAppear {
-                withAnimation(.linear(duration: 1.3).repeatForever(autoreverses: false)) {
-                    phase = 1.0
-                }
-            }
-    }
-}
-
 #Preview {
     MountainsListView()
         .environmentObject(MountainsViewModel())

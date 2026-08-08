@@ -180,7 +180,7 @@ struct HikeLogCreationView: View {
     
     private var trailDetailsForm: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Trail & Traverse Details")
+            Text("Trail Details")
                 .font(.headline)
                 .padding(.horizontal)
             

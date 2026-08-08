@@ -28,13 +28,22 @@ struct HikeLogCreationView: View {
                     trailDetailsForm
                     
                     photosForm
-                    
-                    if let error = viewModel.errorMessage {
-                        errorBanner(error)
-                            .padding(.bottom, 12)
-                    }
                 }
                 .padding(.bottom, 24)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
+            .alert("Missing Info", isPresented: Binding<Bool>(
+                get: { viewModel.errorMessage != nil },
+                set: { if !$0 { viewModel.errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                if let msg = viewModel.errorMessage {
+                    Text(msg)
+                }
             }
             .navigationTitle(logToEdit == nil ? "Log Ascent" : "Edit Ascent Log")
             .navigationBarTitleDisplayMode(.inline)
@@ -133,7 +142,7 @@ struct HikeLogCreationView: View {
     
     private var activityForm: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Activity Parameters")
+            Text("Climb Info")
                 .font(.headline)
                 .padding(.horizontal)
             
@@ -185,15 +194,16 @@ struct HikeLogCreationView: View {
                 .padding(.horizontal)
             
             VStack(spacing: 0) {
-                // Route Style Selector (Back Trail vs Traverse)
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Route Style")
+                // Route Type Selector (Back Trail vs Traverse vs Circuit)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Route Type")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                     
-                    HStack(spacing: 12) {
-                        routeStyleCard(title: "Back Trail", subtitle: "Same Start & Exit", icon: "point.forward.to.point.capsulepath", isTraverse: false, accentColor: .blue)
-                        routeStyleCard(title: "Traverse", subtitle: "Different Exit Trail", icon: "point.bottomleft.forward.to.point.topright.scurvepath", isTraverse: true, accentColor: .purple)
+                    HStack(spacing: 8) {
+                        routeStyleCard(title: "Back Trail", subtitle: "Same Route", icon: "point.forward.to.point.capsulepath", routeType: "Back Trail", accentColor: .blue)
+                        routeStyleCard(title: "Traverse", subtitle: "Diff. Exit", icon: "point.bottomleft.forward.to.point.topright.scurvepath", routeType: "Traverse", accentColor: .blue)
+                        routeStyleCard(title: "Circuit", subtitle: "Loop Route", icon: "arrow.triangle.2.circlepath", routeType: "Circuit", accentColor: .blue)
                     }
                 }
                 .padding()
@@ -202,15 +212,15 @@ struct HikeLogCreationView: View {
                 
                 // Trail / Entry Route Name
                 HStack(spacing: 12) {
-                    Image(systemName: viewModel.isTraverse ? "arrow.down.right.circle.fill" : "point.forward.to.point.capsulepath")
+                    Image(systemName: viewModel.routeType == "Circuit" ? "arrow.triangle.2.circlepath" : (viewModel.routeType == "Traverse" ? "arrow.down.right.circle.fill" : "point.forward.to.point.capsulepath"))
                         .foregroundColor(.summitSteel)
                         .frame(width: 24)
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(viewModel.isTraverse ? "Start Trail" : "Back Trail Name (Start & Exit)")
+                        Text(viewModel.routeType == "Circuit" ? "Entry & Exit" : (viewModel.routeType == "Traverse" ? "Entry Trail" : "Trail Name (Entry & Exit)"))
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        TextField(viewModel.isTraverse ? "e.g. Kule Trail" : "e.g. Salacafe Trail, Ambangeg Trail", text: $viewModel.trailName)
+                        TextField(viewModel.routeType == "Circuit" ? "e.g. Sta. Cruz Circuit" : (viewModel.routeType == "Traverse" ? "e.g. Kule Trail" : "e.g. Salacafe Trail, Ambangeg Trail"), text: $viewModel.trailName)
                             .font(.subheadline)
                             .foregroundColor(.primary)
                     }
@@ -218,12 +228,12 @@ struct HikeLogCreationView: View {
                 .padding()
                 
                 // Exit Trail (Only visible if Traverse is ON)
-                if viewModel.isTraverse {
+                if viewModel.routeType == "Traverse" {
                     Divider().padding(.leading)
                     
                     HStack(spacing: 12) {
                         Image(systemName: "arrow.up.right.circle.fill")
-                            .foregroundColor(.red)
+                            .foregroundColor(.summitSteel)
                             .frame(width: 24)
                         
                         VStack(alignment: .leading, spacing: 4) {
@@ -238,12 +248,64 @@ struct HikeLogCreationView: View {
                     .padding()
                 }
                 
+                // Circuit Waypoints (Only visible if Circuit is ON)
+                if viewModel.routeType == "Circuit" {
+                    Divider().padding(.leading)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "mappin.circle.fill")
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(.white, Color(uiColor: .systemGray3))
+                                .font(.system(size: 24))
+                            Text("Waypoints")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Button(action: {
+                                viewModel.waypoints.append("")
+                            }) {
+                                Text("+ Add")
+                                    .font(.subheadline)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                        
+                        ForEach(viewModel.waypoints.indices, id: \.self) { index in
+                            HStack {
+                                Spacer().frame(width: 36)
+                                TextField("e.g. Lake Venado", text: Binding(
+                                    get: {
+                                        guard index < viewModel.waypoints.count else { return "" }
+                                        return viewModel.waypoints[index]
+                                    },
+                                    set: { newValue in
+                                        guard index < viewModel.waypoints.count else { return }
+                                        viewModel.waypoints[index] = newValue
+                                    }
+                                ))
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+                                
+                                Button(action: {
+                                    viewModel.waypoints.remove(at: index)
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                    .padding()
+                }
+                
                 Divider().padding(.leading)
                 
                 // Trail Difficulty
                 HStack(spacing: 12) {
                     Image(systemName: "gauge.with.dots.needle.bottom.100percent")
-                        .foregroundColor(.orange)
+                        .foregroundColor(.summitSteel)
                         .frame(width: 24)
                     
                     VStack(alignment: .leading, spacing: 4) {
@@ -283,12 +345,12 @@ struct HikeLogCreationView: View {
     }
     
     @ViewBuilder
-    private func routeStyleCard(title: String, subtitle: String, icon: String, isTraverse: Bool, accentColor: Color) -> some View {
-        let isSelected = (viewModel.isTraverse == isTraverse)
+    private func routeStyleCard(title: String, subtitle: String, icon: String, routeType: String, accentColor: Color) -> some View {
+        let isSelected = (viewModel.routeType == routeType)
         
         Button {
             withAnimation(.easeInOut(duration: 0.15)) {
-                viewModel.isTraverse = isTraverse
+                viewModel.routeType = routeType
             }
         } label: {
             VStack(spacing: 6) {
@@ -321,7 +383,7 @@ struct HikeLogCreationView: View {
     @ViewBuilder
     private func outcomeCard(_ option: ClimbOutcome) -> some View {
         let isSelected = viewModel.outcome == option
-        let accentColor: Color = option == .summited ? .orange : .red
+        let accentColor: Color = .blue
         
         Button {
             viewModel.outcome = option
@@ -462,19 +524,7 @@ struct HikeLogCreationView: View {
         }
     }
     
-    private func errorBanner(_ message: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(.red)
-            Text(message)
-                .font(.subheadline)
-            Spacer()
-        }
-        .padding()
-        .background(Color.red.opacity(0.12))
-        .cornerRadius(12)
-        .padding(.horizontal)
-    }
+
 }
 
 #Preview {

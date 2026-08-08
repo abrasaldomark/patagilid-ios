@@ -146,8 +146,8 @@ class SummitLogsViewModel: ObservableObject {
                 let m = allPeaks.first(where: { $0.id == log.mountainId }) ?? mountainMap[log.mountainId]
                 let nameMatch = m?.name.localizedCaseInsensitiveContains(searchText) == true
                 let regionMatch = m?.region.localizedCaseInsensitiveContains(searchText) == true
-                let trailMatch = log.trailName?.localizedCaseInsensitiveContains(searchText) == true
-                let exitMatch = log.exitTrailName?.localizedCaseInsensitiveContains(searchText) == true
+                let trailMatch = log.trailName.localizedCaseInsensitiveContains(searchText)
+                let exitMatch = log.exitTrailName.localizedCaseInsensitiveContains(searchText)
                 return nameMatch || regionMatch || trailMatch || exitMatch
             }
         }

@@ -143,36 +143,52 @@ struct SummitLogDetailView: View {
             
             // Route & Trail Section
             sectionCard(title: "Route Experienced") {
-                if log.isTraverse == true {
+                if log.routeType == "Traverse" {
                     detailRow(icon: "point.bottomleft.forward.to.point.topright.scurvepath", iconColor: .purple,
                               label: "Climb Style", value: "Traverse Route")
                     Divider().padding(.leading, 40)
-                    if let start = log.trailName, !start.isEmpty {
+                    if !log.trailName.isEmpty {
                         detailRow(icon: "arrow.down.right.circle.fill", iconColor: .summitSteel,
-                                  label: "Start Trail", value: start)
+                                  label: "Start Trail", value: log.trailName)
                         Divider().padding(.leading, 40)
                     }
-                    if let exit = log.exitTrailName, !exit.isEmpty {
+                    if !log.exitTrailName.isEmpty {
                         detailRow(icon: "arrow.up.right.circle.fill", iconColor: .red,
-                                  label: "Exit Trail", value: exit)
+                                  label: "Exit Trail", value: log.exitTrailName)
+                        Divider().padding(.leading, 40)
+                    }
+                } else if log.routeType == "Circuit" {
+                    detailRow(icon: "arrow.triangle.2.circlepath", iconColor: .orange,
+                              label: "Climb Style", value: "Circuit Route")
+                    Divider().padding(.leading, 40)
+                    if !log.trailName.isEmpty {
+                        detailRow(icon: "arrow.up.and.down.circle.fill", iconColor: .summitSteel,
+                                  label: "Start & End Trail", value: log.trailName)
+                        Divider().padding(.leading, 40)
+                    }
+                    if !log.waypoints.isEmpty {
+                        detailRow(icon: "mappin.and.ellipse", iconColor: .green,
+                                  label: "Waypoints", value: log.waypoints.joined(separator: ", "))
                         Divider().padding(.leading, 40)
                     }
                 } else {
                     detailRow(icon: "point.forward.to.point.capsulepath", iconColor: .blue,
                               label: "Climb Style", value: "Back Trail (Same Start & Exit)")
                     Divider().padding(.leading, 40)
-                    if let trail = log.trailName, !trail.isEmpty {
+                    if !log.trailName.isEmpty {
                         detailRow(icon: "arrow.up.and.down.circle.fill", iconColor: .summitSteel,
-                                  label: "Back Trail Name", value: trail)
+                                  label: "Back Trail Name", value: log.trailName)
                         Divider().padding(.leading, 40)
                     }
                 }
                 
+                let trailDiff = log.trailDifficulty.isEmpty ? (mountain?.difficultyLevel ?? "N/A") : log.trailDifficulty
                 detailRow(icon: "gauge.with.dots.needle.bottom.100percent", iconColor: .gliderBlue,
-                          label: "Experienced Difficulty", value: log.trailDifficulty ?? mountain?.difficultyLevel ?? "N/A")
+                          label: "Experienced Difficulty", value: trailDiff)
                 Divider().padding(.leading, 40)
+                let trailClassVal = log.trailClass.isEmpty ? (mountain?.trailClass ?? "N/A") : log.trailClass
                 detailRow(icon: "figure.climbing", iconColor: .summitSteel,
-                          label: "Technical Trail Class", value: log.trailClass ?? mountain?.trailClass ?? "N/A")
+                          label: "Technical Trail Class", value: trailClassVal)
             }
             
             // Climb Attempt Section

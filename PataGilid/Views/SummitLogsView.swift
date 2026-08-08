@@ -321,32 +321,42 @@ struct SummitLogRow: View {
                 }
                 
                 // Optional Custom Trail / Traverse Route Badge
-                if let trail = log.trailName, !trail.isEmpty {
+                if !log.trailName.isEmpty {
                     HStack(spacing: 4) {
-                        Image(systemName: (log.isTraverse == true) ? "point.bottomleft.forward.to.point.topright.scurvepath" : "point.forward.to.point.capsulepath")
+                        let isCircuit = log.routeType == "Circuit"
+                        let isTraverse = log.routeType == "Traverse"
+                        let iconName = isCircuit ? "arrow.triangle.2.circlepath" : (isTraverse ? "point.bottomleft.forward.to.point.topright.scurvepath" : "point.forward.to.point.capsulepath")
+                        let color: Color = isCircuit ? .orange : (isTraverse ? .purple : .blue)
+                        
+                        Image(systemName: iconName)
                             .font(.caption2)
                         
-                        if log.isTraverse == true, let exit = log.exitTrailName, !exit.isEmpty {
-                            Text("\(trail) ➔ \(exit) (Traverse)")
+                        if isTraverse, !log.exitTrailName.isEmpty {
+                            Text("\(log.trailName) ➔ \(log.exitTrailName) (Traverse)")
                                 .font(.caption2)
                                 .fontWeight(.semibold)
                                 .lineLimit(1)
-                        } else if log.isTraverse == true {
-                            Text("\(trail) (Traverse)")
+                        } else if isTraverse {
+                            Text("\(log.trailName) (Traverse)")
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                                .lineLimit(1)
+                        } else if isCircuit {
+                            Text("\(log.trailName) (Circuit)")
                                 .font(.caption2)
                                 .fontWeight(.semibold)
                                 .lineLimit(1)
                         } else {
-                            Text("\(trail) (Back Trail)")
+                            Text("\(log.trailName) (Back Trail)")
                                 .font(.caption2)
                                 .fontWeight(.semibold)
                                 .lineLimit(1)
                         }
                     }
-                    .foregroundColor(log.isTraverse == true ? .purple : .blue)
+                    .foregroundColor(log.routeType == "Circuit" ? .orange : (log.routeType == "Traverse" ? .purple : .blue))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(log.isTraverse == true ? Color.purple.opacity(0.1) : Color.blue.opacity(0.1))
+                    .background((log.routeType == "Circuit" ? Color.orange : (log.routeType == "Traverse" ? Color.purple : Color.blue)).opacity(0.1))
                     .clipShape(Capsule())
                 }
                 

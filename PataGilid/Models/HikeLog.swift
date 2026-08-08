@@ -46,26 +46,29 @@ struct HikeLog: Codable, Identifiable {
     }
     
     /// Optional custom trail or traverse route taken (e.g., "Kule Trail"). For a traverse, this is the Entry Trail.
-    var trailName: String?
+    var trailName: String = ""
     
-    /// Whether the attempt was a traverse route (entry and exit points on different trails).
-    var isTraverse: Bool?
+    /// The type of route (Back Trail, Traverse, Circuit).
+    var routeType: String = ""
     
     /// Optional exit trail name when traversing (e.g., "Salacafe Trail").
-    var exitTrailName: String?
+    var exitTrailName: String = ""
     
     /// Experienced climb difficulty rating for this log attempt (e.g., "7/9 (Major)").
-    var trailDifficulty: String?
+    var trailDifficulty: String = ""
     
     /// Technical terrain classification encountered (e.g., "Class 3").
-    var trailClass: String?
+    var trailClass: String = ""
+    
+    /// Intermediate checkpoints for a circuit route.
+    var waypoints: [String] = []
     
     // MARK: - Explicit Memberwise Init
     
     init(userId: String, mountainId: String, dateTimeStart: Date, dateTimeEnd: Date,
          didSummit: Bool, photoUrls: [String],
-         trailName: String? = nil, isTraverse: Bool? = nil, exitTrailName: String? = nil,
-         trailDifficulty: String? = nil, trailClass: String? = nil) {
+         trailName: String = "", routeType: String = "", exitTrailName: String = "",
+         trailDifficulty: String = "", trailClass: String = "", waypoints: [String] = []) {
         self.userId = userId
         self.mountainId = mountainId
         self.dateTimeStart = dateTimeStart
@@ -73,9 +76,10 @@ struct HikeLog: Codable, Identifiable {
         self.didSummit = didSummit
         self.photoUrls = photoUrls
         self.trailName = trailName
-        self.isTraverse = isTraverse
+        self.routeType = routeType
         self.exitTrailName = exitTrailName
         self.trailDifficulty = trailDifficulty
         self.trailClass = trailClass
+        self.waypoints = waypoints
     }
 }

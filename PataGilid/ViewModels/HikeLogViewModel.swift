@@ -43,10 +43,11 @@ class HikeLogViewModel: ObservableObject {
     @Published var dateTimeEnd: Date = Calendar.current.date(byAdding: .hour, value: 8, to: Date()) ?? Date()
     @Published var outcome: ClimbOutcome = .summited
     @Published var trailName: String = ""
-    @Published var isTraverse: Bool = false
+    @Published var routeType: String = "Back Trail"
     @Published var exitTrailName: String = ""
     @Published var trailDifficulty: String = ""
     @Published var trailClass: String = ""
+    @Published var waypoints: [String] = []
     
     // MARK: - Photo Attachments
     @Published var selectedPhotos: [PhotosPickerItem] = []
@@ -207,12 +208,13 @@ class HikeLogViewModel: ObservableObject {
         self.dateTimeStart = log.dateTimeStart
         self.dateTimeEnd = log.dateTimeEnd
         self.outcome = log.didSummit ? .summited : .backedOut
-        self.trailName = log.trailName ?? ""
-        self.isTraverse = log.isTraverse == true
-        self.exitTrailName = log.exitTrailName ?? ""
-        self.trailDifficulty = log.trailDifficulty ?? ""
-        self.trailClass = log.trailClass ?? ""
+        self.trailName = log.trailName
+        self.routeType = log.routeType
+        self.exitTrailName = log.exitTrailName
+        self.trailDifficulty = log.trailDifficulty
+        self.trailClass = log.trailClass
         self.existingPhotoUrls = log.cleanPhotoUrls
+        self.waypoints = log.waypoints
     }
     
     // MARK: - Submission & Deletion
@@ -227,6 +229,28 @@ class HikeLogViewModel: ObservableObject {
         guard dateTimeEnd > dateTimeStart else {
             errorMessage = "End time must be after start time."
             return
+        }
+        
+        let cleanTrailName = trailName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanTrailName.isEmpty else {
+            errorMessage = "Please enter the Trail Name."
+            return
+        }
+        
+        if routeType == "Traverse" {
+            let cleanExitTrail = exitTrailName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanExitTrail.isEmpty else {
+                errorMessage = "Please enter the Exit Trail Name."
+                return
+            }
+        }
+        
+        if routeType == "Circuit" {
+            let validWaypoints = waypoints.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            guard !validWaypoints.isEmpty else {
+                errorMessage = "Please add at least one Waypoint."
+                return
+            }
         }
         
         isSaving = true
@@ -253,10 +277,10 @@ class HikeLogViewModel: ObservableObject {
                     }
                 }
                 
-                let cleanTrailName = trailName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : trailName.trimmingCharacters(in: .whitespacesAndNewlines)
-                let cleanExitTrail = (isTraverse && !exitTrailName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) ? exitTrailName.trimmingCharacters(in: .whitespacesAndNewlines) : nil
-                let cleanDifficulty = trailDifficulty.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : trailDifficulty.trimmingCharacters(in: .whitespacesAndNewlines)
-                let cleanTrailClass = trailClass.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : trailClass.trimmingCharacters(in: .whitespacesAndNewlines)
+                let cleanTrailName = trailName.trimmingCharacters(in: .whitespacesAndNewlines)
+                let cleanExitTrail = (routeType == "Traverse" && !exitTrailName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) ? exitTrailName.trimmingCharacters(in: .whitespacesAndNewlines) : ""
+                let cleanDifficulty = trailDifficulty.trimmingCharacters(in: .whitespacesAndNewlines)
+                let cleanTrailClass = trailClass.trimmingCharacters(in: .whitespacesAndNewlines)
 
                 var hikeLog = HikeLog(
                     userId: user.uid,
@@ -266,10 +290,11 @@ class HikeLogViewModel: ObservableObject {
                     didSummit: outcome == .summited,
                     photoUrls: combinedPhotoUrls,
                     trailName: cleanTrailName,
-                    isTraverse: isTraverse ? true : nil,
+                    routeType: routeType,
                     exitTrailName: cleanExitTrail,
                     trailDifficulty: cleanDifficulty,
-                    trailClass: cleanTrailClass
+                    trailClass: cleanTrailClass,
+                    waypoints: routeType == "Circuit" ? waypoints.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } : []
                 )
                 
                 let db = Firestore.firestore()

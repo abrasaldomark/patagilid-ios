@@ -95,7 +95,7 @@ struct MainTabView: View {
                             Button(action: { showAdminQueue = true }) {
                                 HStack {
                                     Image(systemName: "checklist.checked")
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(.summitSteel)
                                     Text("Open Moderation Queue")
                                         .fontWeight(.semibold)
                                         .foregroundColor(.primary)
@@ -108,11 +108,10 @@ struct MainTabView: View {
                                         Text("\(mountainsViewModel.totalPendingReviewsCount)")
                                             .font(.caption)
                                             .fontWeight(.bold)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 3)
-                                            .background(Color.orange)
+                                            .frame(width: 24, height: 24)
+                                            .background(Color.red)
                                             .foregroundColor(.white)
-                                            .clipShape(Capsule())
+                                            .clipShape(Circle())
                                     }
                                 }
                             }

@@ -10,6 +10,7 @@ import FirebaseFirestore
 
 struct AdminModerationQueueView: View {
     @EnvironmentObject var mountainsViewModel: MountainsViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var mountainToMerge: Mountain? = nil
     @State private var mountainToViewMap: Mountain? = nil
@@ -80,6 +81,7 @@ struct AdminModerationQueueView: View {
             }
             .sheet(item: $mountainToViewMap) { targetMountain in
                 MountainMapView(mountain: targetMountain)
+                    .environmentObject(authViewModel)
             }
             .overlay {
                 if isProcessing {
@@ -284,7 +286,7 @@ struct AdminModerationQueueView: View {
                         Image(systemName: "checkmark.seal.fill")
                             .foregroundColor(.green)
                             .font(.caption2)
-                        Text("⭐️ Confirmed accurate by \(mountain.pendingVerifications) community mountaineer\(mountain.pendingVerifications == 1 ? "" : "s")")
+                        Text("⭐️ Upvoted by \(mountain.pendingVerifications) community mountaineer\(mountain.pendingVerifications == 1 ? "" : "s")")
                             .font(.caption2)
                             .fontWeight(.bold)
                             .foregroundColor(.green)

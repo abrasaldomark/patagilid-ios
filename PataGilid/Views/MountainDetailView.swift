@@ -242,6 +242,7 @@ struct MountainDetailView: View {
         }
         .sheet(isPresented: $showingInternalMap) {
             MountainMapView(mountain: mountain)
+                .environmentObject(authViewModel)
         }
         .sheet(isPresented: $showingCoordinateContribution) {
             CoordinateContributionView(mountain: mountain)
@@ -504,7 +505,7 @@ struct MountainDetailView: View {
                         Image(systemName: "checkmark.seal.fill")
                             .foregroundColor(.green)
                             .font(.caption2)
-                        Text("⭐️ Confirmed accurate by \(mountain.pendingVerifications) community mountaineer\(mountain.pendingVerifications == 1 ? "" : "s")")
+                        Text("⭐️ Upvoted by \(mountain.pendingVerifications) community mountaineer\(mountain.pendingVerifications == 1 ? "" : "s")")
                             .font(.caption2)
                             .fontWeight(.bold)
                             .foregroundColor(.green)

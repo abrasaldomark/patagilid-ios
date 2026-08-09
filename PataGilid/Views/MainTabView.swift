@@ -188,6 +188,7 @@ struct MainTabView: View {
         .sheet(isPresented: $showAdminQueue) {
             AdminModerationQueueView()
                 .environmentObject(mountainsViewModel)
+                .environmentObject(authViewModel)
         }
         .sheet(isPresented: $showDonationSheet) {
             DonationQRView()

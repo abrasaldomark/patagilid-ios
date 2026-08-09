@@ -13,6 +13,7 @@ struct SummitLogDetailView: View {
     let mountain: Mountain?
     
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var actionViewModel = HikeLogViewModel()
     @State private var selectedPhotoIndex: Int = 0
     @State private var isShowingPhotoGallery: Bool = false
@@ -71,6 +72,7 @@ struct SummitLogDetailView: View {
         .sheet(isPresented: $showingInternalMap) {
             if let mountain {
                 MountainMapView(mountain: mountain)
+                    .environmentObject(authViewModel)
             }
         }
     }

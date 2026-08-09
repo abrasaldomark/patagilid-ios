@@ -50,9 +50,9 @@ struct MountainsListView: View {
                         .background(
                             !viewModel.hasPendingReviews ?
                             LinearGradient(gradient: Gradient(colors: [Color.gliderBlue, Color.summitSteel]), startPoint: .leading, endPoint: .trailing) :
-                            LinearGradient(gradient: Gradient(colors: [Color.orange, Color.red]), startPoint: .leading, endPoint: .trailing)
+                            LinearGradient(gradient: Gradient(colors: [Color.gliderBlue, Color.blue]), startPoint: .leading, endPoint: .trailing)
                         )
-                        .shadow(color: (!viewModel.hasPendingReviews ? Color.gliderBlue : Color.red).opacity(0.3), radius: 4, x: 0, y: 2)
+                        .shadow(color: Color.gliderBlue.opacity(0.3), radius: 4, x: 0, y: 2)
                     }
                     .buttonStyle(.plain)
                 }
@@ -259,6 +259,7 @@ struct MountainsListView: View {
             .sheet(isPresented: $showAdminQueue) {
                 AdminModerationQueueView()
                     .environmentObject(viewModel)
+                    .environmentObject(authViewModel)
             }
         }
     }

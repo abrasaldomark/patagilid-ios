@@ -121,20 +121,6 @@ struct MountainMapView: View {
                                         .cornerRadius(10)
                                 }
                                 .disabled(isSaving)
-                                
-                                Button {
-                                    saveAdjustedProposal(lat: newCoord.latitude, lon: newCoord.longitude, approveNow: true)
-                                } label: {
-                                    Text("Approve Now")
-                                        .font(.caption)
-                                        .fontWeight(.bold)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 12)
-                                        .background(Color.gliderBlue)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(10)
-                                }
-                                .disabled(isSaving)
                             } else {
                                 Button {
                                     saveAdjustedOfficialGPS(lat: newCoord.latitude, lon: newCoord.longitude)

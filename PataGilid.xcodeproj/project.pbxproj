@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		17721F893A8D9B7CB859F318 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 6C0D954C3105564E86F05C3C /* FirebaseCrashlytics */; };
 		1EB0A26FCE295C367DD976C2 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 8CE4E7F82AC07DC0347E67A0 /* FirebaseMessaging */; };
+		3F1B80FD89AEBC1EA14CA4A5 /* GoogleMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 6300E74A26838701F5F520EE /* GoogleMaps */; };
 		426A14FA92BE89B5859FDB91 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 06CD5044F86AAD3EC9C6DA8D /* FirebaseCore */; };
 		4D686F044ED6BE4E8508BB3C /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 63C72D0872D2AE19CAAC573E /* FirebaseFirestore */; };
 		54B3876F301724C000CAAC0B /* GoogleMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 54B3876E301724C000CAAC0B /* GoogleMaps */; };
@@ -23,6 +24,7 @@
 		C8E1D947EB959238C3059EC9 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 0FF2BB4CC4A2E584FB72D350 /* FirebaseAuth */; };
 		CA1AA1076157773AD0D40E8E /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 85482906498B2315B1925EA4 /* FirebaseStorage */; };
 		D335F15744A9D8797FB4126B /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 309AA8B5F11DE3E0A500B3C9 /* FirebaseStorage */; };
+		DAD8B29FD0CC2089A7015A25 /* GooglePlaces in Frameworks */ = {isa = PBXBuildFile; productRef = 27ACE22481DB769145BBBD1E /* GooglePlaces */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,7 +52,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		54B387A93017489500CAAC0B /* Exceptions for "PataGilid" folder in "PataGilid" target */ = {
+		54B387A93017489500CAAC0B /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -63,7 +65,7 @@
 		54778C2B301721DE000E29EB /* PataGilid */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				54B387A93017489500CAAC0B /* Exceptions for "PataGilid" folder in "PataGilid" target */,
+				54B387A93017489500CAAC0B /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
 			);
 			path = PataGilid;
 			sourceTree = "<group>";
@@ -101,6 +103,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3F1B80FD89AEBC1EA14CA4A5 /* GoogleMaps in Frameworks */,
+				DAD8B29FD0CC2089A7015A25 /* GooglePlaces in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -194,6 +198,8 @@
 			);
 			name = PataGilidTests;
 			packageProductDependencies = (
+				6300E74A26838701F5F520EE /* GoogleMaps */,
+				27ACE22481DB769145BBBD1E /* GooglePlaces */,
 			);
 			productName = PataGilidTests;
 			productReference = 54778C38301721E0000E29EB /* PataGilidTests.xctest */;
@@ -265,6 +271,7 @@
 				54B3876D301724C000CAAC0B /* XCRemoteSwiftPackageReference "ios-maps-sdk" */,
 				54B38770301724D700CAAC0B /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 				54B387733017253700CAAC0B /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				FB06FB892F1A8941C6A6DEA5 /* XCRemoteSwiftPackageReference "ios-places-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 54778C2A301721DE000E29EB /* Products */;
@@ -723,6 +730,14 @@
 				minimumVersion = 12.16.0;
 			};
 		};
+		FB06FB892F1A8941C6A6DEA5 /* XCRemoteSwiftPackageReference "ios-places-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googlemaps/ios-places-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.2.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -735,6 +750,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 54B387733017253700CAAC0B /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAuth;
+		};
+		27ACE22481DB769145BBBD1E /* GooglePlaces */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB06FB892F1A8941C6A6DEA5 /* XCRemoteSwiftPackageReference "ios-places-sdk" */;
+			productName = GooglePlaces;
 		};
 		309AA8B5F11DE3E0A500B3C9 /* FirebaseStorage */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -775,6 +795,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 54B387733017253700CAAC0B /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseMessaging;
+		};
+		6300E74A26838701F5F520EE /* GoogleMaps */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54B3876D301724C000CAAC0B /* XCRemoteSwiftPackageReference "ios-maps-sdk" */;
+			productName = GoogleMaps;
 		};
 		63C72D0872D2AE19CAAC573E /* FirebaseFirestore */ = {
 			isa = XCSwiftPackageProductDependency;

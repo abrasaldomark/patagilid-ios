@@ -57,6 +57,23 @@ class MountainsViewModel: ObservableObject {
         return totalPendingReviewsCount > 0
     }
     
+    // MARK: - User Contributions
+    
+    /// Mountains submitted by the user that are still pending approval.
+    func userPendingMountains(forEmail email: String) -> [Mountain] {
+        return allPeaks.filter { !$0.isPubliclyApproved && $0.contributorEmail == email }
+    }
+    
+    /// GPS calibrations proposed by the user that are still pending.
+    func userPendingGPS(forEmail email: String) -> [Mountain] {
+        return allPeaks.filter { $0.pendingContributorEmail == email }
+    }
+    
+    /// Approved mountain submissions by the user.
+    func userApprovedMountains(forEmail email: String) -> [Mountain] {
+        return allPeaks.filter { $0.isPubliclyApproved && $0.contributorEmail == email }
+    }
+    
     /// Returns available peaks for logging: public peaks plus any pending peaks submitted by this user.
     func peaksAvailableForLogging(forUserId userId: String?) -> [Mountain] {
         return allPeaks.filter { $0.isPubliclyApproved || ($0.contributorId == userId && userId != nil) }

@@ -154,7 +154,7 @@ struct SummitLogsView: View {
                 .clipShape(Circle())
             
             VStack(spacing: 8) {
-                Text("No Logs Yet")
+                Text("Akyat na!")
                     .font(.title3)
                     .fontWeight(.bold)
                 Text("Open any mountain on the list and tap\n\"Add Climb\" to record your first ascent.")

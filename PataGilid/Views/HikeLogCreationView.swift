@@ -108,12 +108,6 @@ struct HikeLogCreationView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 14))
             
             VStack(alignment: .leading, spacing: 4) {
-                Text("TARGET SUMMIT")
-                    .font(.caption2)
-                    .fontWeight(.black)
-                    .foregroundColor(.gray)
-                    .tracking(1.5)
-                
                 Text(mountain.name)
                     .font(.title3)
                     .fontWeight(.black)

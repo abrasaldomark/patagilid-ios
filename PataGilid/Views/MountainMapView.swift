@@ -43,7 +43,7 @@ struct MountainMapView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
-                OpenTopoMapView(
+                GoogleMapView(
                     centerCoordinate: center,
                     distance: distance,
                     annotationCoordinate: (displayLatitude != nil && displayLongitude != nil) ? CLLocationCoordinate2D(latitude: displayLatitude!, longitude: displayLongitude!) : nil,

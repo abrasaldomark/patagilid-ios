@@ -11,6 +11,7 @@ import FirebaseFirestore
 import FirebaseAuth
 import MapKit
 import PhotosUI
+import GooglePlaces
 
 /// An in-depth summit dashboard presenting coordinates, difficulty metrics, regional classification, and crowdsourced GPS calibration triggers.
 struct MountainDetailView: View {
@@ -938,13 +939,14 @@ struct InteractiveCoordinatePickerView: View {
     
     var body: some View {
         NavigationStack {
-            OpenTopoMapView(
+            GoogleMapView(
                 centerCoordinate: mapCenter,
                 distance: mapDistance,
                 annotationCoordinate: selectedCoordinate,
                 annotationTitle: peakName,
                 isInteractivePicker: true,
-                onSelectCoordinate: { newCoord in
+                isDraggableAnnotation: false,
+                onAnnotationDrag: { newCoord in
                     withAnimation(.spring()) {
                         selectedCoordinate = newCoord
                     }
@@ -1048,7 +1050,7 @@ struct InteractiveCoordinatePickerView: View {
                                 Image(systemName: "hand.tap.fill")
                                     .font(.title3)
                                     .foregroundColor(.gliderBlue)
-                                Text("Tap anywhere on the map to place a pin on the mountain's summit.")
+                                    Text("Tap anywhere on the map to place a pin on the mountain's summit.")
                                     .font(.subheadline)
                                     .foregroundColor(.primary)
                                 Spacer(minLength: 0)
@@ -1083,80 +1085,51 @@ struct InteractiveCoordinatePickerView: View {
         isSearching = true
         searchError = nil
         
-        Task {
-            do {
-                var components = URLComponents(string: "https://nominatim.openstreetmap.org/search")
-                components?.queryItems = [
-                    URLQueryItem(name: "q", value: query),
-                    URLQueryItem(name: "format", value: "json"),
-                    URLQueryItem(name: "countrycodes", value: "ph"),
-                    URLQueryItem(name: "limit", value: "5")
-                ]
-                
-                guard let url = components?.url else {
-                    throw URLError(.badURL)
+        let filter = GMSAutocompleteFilter()
+        filter.country = "PH"
+        
+        GMSPlacesClient.shared().findAutocompletePredictions(fromQuery: query, filter: filter, sessionToken: nil) { (results, error) in
+            if let error = error {
+                isSearching = false
+                searchError = "Search failed: \(error.localizedDescription)"
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    withAnimation { searchError = nil }
                 }
-                
-                var urlRequest = URLRequest(url: url)
-                // OpenStreetMap Nominatim API requires an identifying User-Agent header
-                urlRequest.setValue("PataGilid-iOS-App/1.0 (contact@patagilid.app)", forHTTPHeaderField: "User-Agent")
-                
-                let (data, _) = try await URLSession.shared.data(for: urlRequest)
-                var results = try JSONDecoder().decode([NominatimResult].self, from: data)
-                
-                // Fallback search without countrycode restriction if local tag wasn't indexed
-                if results.isEmpty {
-                    var fallbackComponents = URLComponents(string: "https://nominatim.openstreetmap.org/search")
-                    fallbackComponents?.queryItems = [
-                        URLQueryItem(name: "q", value: "\(query), Philippines"),
-                        URLQueryItem(name: "format", value: "json"),
-                        URLQueryItem(name: "limit", value: "5")
-                    ]
-                    if let fallbackUrl = fallbackComponents?.url {
-                        var fallbackRequest = URLRequest(url: fallbackUrl)
-                        fallbackRequest.setValue("PataGilid-iOS-App/1.0 (contact@patagilid.app)", forHTTPHeaderField: "User-Agent")
-                        let (fallbackData, _) = try await URLSession.shared.data(for: fallbackRequest)
-                        results = try JSONDecoder().decode([NominatimResult].self, from: fallbackData)
-                    }
+                return
+            }
+            
+            guard let firstResult = results?.first else {
+                isSearching = false
+                searchError = "Location not found via Google Places. Try a simpler name."
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    withAnimation { searchError = nil }
                 }
-                
-                await MainActor.run {
-                    isSearching = false
-                    if let firstMatch = results.first,
-                       let lat = Double(firstMatch.lat),
-                       let lon = Double(firstMatch.lon) {
-                        let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-                        mapCenter = coordinate
-                        mapDistance = 5000
-                        cameraTrigger = UUID()
-                        withAnimation(.spring()) {
-                            selectedCoordinate = coordinate
-                        }
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    } else {
-                        searchError = "Location not found in OpenStreetMap. Try a simpler mountain name or nearby town."
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                            withAnimation { searchError = nil }
-                        }
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    isSearching = false
-                    searchError = "Search connection failed. Please check internet connection."
+                return
+            }
+            
+            let fields: GMSPlaceField = GMSPlaceField(rawValue: UInt(GMSPlaceField.coordinate.rawValue))
+            GMSPlacesClient.shared().fetchPlace(fromPlaceID: firstResult.placeID, placeFields: fields, sessionToken: nil) { (place, error) in
+                isSearching = false
+                if let error = error {
+                    searchError = "Failed to fetch details: \(error.localizedDescription)"
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                         withAnimation { searchError = nil }
                     }
+                    return
+                }
+                
+                if let coordinate = place?.coordinate {
+                    mapCenter = coordinate
+                    mapDistance = 5000
+                    cameraTrigger = UUID()
+                    withAnimation(.spring()) {
+                        selectedCoordinate = coordinate
+                    }
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 }
             }
         }
     }
-}
-
-private struct NominatimResult: Decodable {
-    let lat: String
-    let lon: String
-    let display_name: String?
 }
 
 #Preview {

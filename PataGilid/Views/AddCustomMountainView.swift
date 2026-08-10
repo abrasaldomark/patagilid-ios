@@ -7,8 +7,6 @@
 
 import SwiftUI
 import FirebaseAuth
-import PhotosUI
-
 struct AddCustomMountainView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -20,22 +18,24 @@ struct AddCustomMountainView: View {
     // Form State
     @State private var mountainName: String = ""
     @State private var elevationText: String = ""
+    @State private var isFetchingElevation: Bool = false
+    @State private var selectedCoordinate: CLLocationCoordinate2D? = nil
+    @State private var selectedPlaceName: String? = nil
     @State private var region: String = ""
     @State private var selectedIslandGroup: IslandGroup = .luzon
     @State private var selectedDifficulty: String = "3/9 (Minor)"
     @State private var selectedClass: String = "Class 1-2"
     @State private var descriptionText: String = ""
     
-    // Photo Upload State
-    @State private var selectedPhotoItem: PhotosPickerItem?
-    @State private var selectedPhotoImage: UIImage?
-    @State private var selectedPhotoData: Data?
-    @State private var isUploadingPhoto: Bool = false
+    // Map State
+    @State private var isMapPresented: Bool = false
+    @State private var showOutsidePHAlert: Bool = false
     
     // Status & Error handling
     @State private var isSubmitting: Bool = false
     @State private var errorMessage: String?
     @State private var showSuccessAlert: Bool = false
+    @State private var showInfoCard: Bool = true
     
     let difficulties = ["1/9 (Minor)", "2/9 (Minor)", "3/9 (Minor)", "4/9 (Minor)", "5/9 (Major)", "6/9 (Major)", "7/9 (Major)", "8/9 (Major)", "9/9 (Major)"]
     let trailClasses = ["Class 1", "Class 1-2", "Class 2", "Class 2-3", "Class 3", "Class 4", "Class 5 (Technical)"]
@@ -102,25 +102,34 @@ struct AddCustomMountainView: View {
         NavigationStack {
             Form {
                 // MARK: - Purpose Guidance Banner
-                Section {
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: "info.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.gliderBlue)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Contributing to PataGilid List")
-                                .font(.subheadline)
-                                .fontWeight(.bold)
-                                .foregroundColor(.primary)
-                            Text("Use this form to submit an unlisted mountain or trail to the national list. Your submission will be reviewed by administrators before becoming visible to all mountaineers.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                if showInfoCard {
+                    Section {
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: "info.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.gliderBlue)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Contributing to PataGilid List")
+                                    .font(.subheadline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.primary)
+                                Text("Submit an unlisted mountain. It will be reviewed by admins before becoming public.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Spacer()
+                            Button(action: { showInfoCard = false }) {
+                                Image(systemName: "xmark")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .buttonStyle(.plain)
                         }
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 4)
+                    .listRowBackground(Color.gliderBlue.opacity(0.1))
                 }
-                .listRowBackground(Color.gliderBlue.opacity(0.1))
                 
                 // MARK: - Smart Suggest (Duplicate Prevention Banner)
                 if !similarPeaks.isEmpty {
@@ -176,17 +185,45 @@ struct AddCustomMountainView: View {
                     .listRowBackground(Color.orange.opacity(0.1))
                 }
                 
-                // MARK: - Core Mountain Details
-                Section(header: Text("Mountain Identification")) {
+                // MARK: - Core Mountain Details & Location
+                Section(header: Text("Mountain Information")) {
+                    Button(action: {
+                        isMapPresented = true
+                    }) {
+                        HStack {
+                            Spacer()
+                            Image(systemName: "map.fill")
+                            Text(selectedCoordinate != nil ? "Edit Pinned Location" : "Pin Location on Map")
+                                .fontWeight(.semibold)
+                            Spacer()
+                        }
+                    }
+                    .foregroundColor(.white)
+                    .listRowBackground(Color.gliderBlue)
+                    
+                    if let coord = selectedCoordinate {
+                        HStack {
+                            Text("Pinned Location")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Text(String(format: "%.4f, %.4f", coord.latitude, coord.longitude))
+                                .foregroundColor(.secondary)
+                        }
+                        .font(.subheadline)
+                    }
+                    
                     TextField("Mountain Name (e.g. Mt. Tagapo)", text: $mountainName)
                         .autocapitalization(.words)
                     
-                    TextField("Elevation in MASL (e.g. 270)", text: $elevationText)
-                        .keyboardType(.numberPad)
-                }
-                
-                // MARK: - Location & Classification
-                Section(header: Text("Location")) {
+                    ZStack(alignment: .trailing) {
+                        TextField("Elevation in MASL (e.g. 270)", text: $elevationText)
+                            .keyboardType(.numberPad)
+                        
+                        if isFetchingElevation {
+                            ProgressView()
+                        }
+                    }
+                    
                     Picker("Island Group", selection: $selectedIslandGroup) {
                         ForEach(IslandGroup.allCases) { group in
                             Text(group.rawValue).tag(group)
@@ -208,7 +245,7 @@ struct AddCustomMountainView: View {
                 }
                 
                 // MARK: - Difficulty Ratings
-                Section(header: Text("Experienced Difficulty & Terrain")) {
+                Section(header: Text("Difficulty & Terrain")) {
                     Picker("Difficulty Rating", selection: $selectedDifficulty) {
                         ForEach(difficulties, id: \.self) { diff in
                             Text(diff).tag(diff)
@@ -228,68 +265,24 @@ struct AddCustomMountainView: View {
                         .frame(minHeight: 80)
                 }
                 
-                // MARK: - Personal Cover Photo
-                Section(header: Text("Personal Cover Photo (Optional)"), footer: Text("Set a custom cover image for this mountain. This photo is private and visible solely on your account.")) {
-                    if let uiImage = selectedPhotoImage {
-                        VStack(spacing: 12) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(height: 180)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                            
-                            HStack {
-                                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                                    Label("Change Photo", systemImage: "arrow.triangle.2.circlepath")
-                                        .font(.subheadline)
-                                }
-                                
-                                Spacer()
-                                
-                                Button(role: .destructive) {
-                                    selectedPhotoItem = nil
-                                    selectedPhotoImage = nil
-                                    selectedPhotoData = nil
-                                } label: {
-                                    Label("Remove", systemImage: "trash")
-                                        .font(.subheadline)
-                                }
-                            }
-                            .padding(.horizontal, 4)
-                        }
-                        .padding(.vertical, 4)
-                    } else {
-                        PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                            HStack {
-                                Image(systemName: "camera.fill")
-                                    .foregroundColor(.gliderBlue)
-                                Text("Add Personal Cover Photo")
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
+                // MARK: - Submit Button
+                Section {
+                    Button(action: submitCustomMountain) {
+                        HStack {
+                            Spacer()
+                            Image(systemName: "mountain.2.fill")
+                            Text("Submit Mountain for Moderation")
+                                .fontWeight(.bold)
+                            Spacer()
                         }
                     }
-                }
-                .onChange(of: selectedPhotoItem) { _, newItem in
-                    Task {
-                        if let data = try? await newItem?.loadTransferable(type: Data.self), let image = UIImage(data: data) {
-                            await MainActor.run {
-                                self.selectedPhotoData = data
-                                self.selectedPhotoImage = image
-                            }
-                        }
-                    }
-                }
-                
-                if let error = errorMessage {
-                    Section {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundColor(.red)
-                    }
+                    .disabled(mountainName.isEmpty || elevationText.isEmpty || isSubmitting)
+                    .listRowBackground(
+                        (mountainName.isEmpty || elevationText.isEmpty) ? Color.gray.opacity(0.3) : Color.gliderBlue
+                    )
+                    .foregroundColor(
+                        (mountainName.isEmpty || elevationText.isEmpty) ? Color(uiColor: .systemGray) : .white
+                    )
                 }
             }
             .onAppear {
@@ -300,17 +293,72 @@ struct AddCustomMountainView: View {
             .navigationTitle("Contribute Mountain")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(.red)
+                }
+            }
+            .fullScreenCover(isPresented: $isMapPresented) {
+                CoordinateSelectionView(selectedCoordinate: $selectedCoordinate, selectedPlaceName: $selectedPlaceName)
+            }
+            .alert(errorMessage?.contains("already on PataGilid") == true ? "Teka, sandali!" : "Notice", isPresented: Binding<Bool>(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage ?? "")
+            }
+            .onChange(of: selectedCoordinate) { _, newCoord in
+                guard let newCoord = newCoord else { return }
+                
+                if let placeName = selectedPlaceName, !placeName.isEmpty {
+                    self.mountainName = placeName
                 }
                 
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Next") {
-                        submitMountain()
+                LocationHelper.reverseGeocode(coordinate: newCoord) { newName, newRegion, newIslandGroup in
+                    DispatchQueue.main.async {
+                        if let r = newRegion, let ig = newIslandGroup {
+                            self.selectedIslandGroup = ig
+                            // Wait a tiny bit for the regions list to update based on island group, then set region
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                self.region = r
+                            }
+                            if self.mountainName.isEmpty {
+                                if let name = newName, !name.isEmpty, !name.contains("+") {
+                                    self.mountainName = name
+                                }
+                            }
+                            
+                            // Fetch elevation
+                            self.isFetchingElevation = true
+                            LocationHelper.fetchElevation(coordinate: newCoord) { elevation in
+                                DispatchQueue.main.async {
+                                    self.isFetchingElevation = false
+                                    if let elevation = elevation, self.elevationText.isEmpty {
+                                        self.elevationText = String(Int(elevation))
+                                    }
+                                }
+                            }
+                        } else {
+                            // Invalid location (e.g. outside PH or ocean)
+                            self.selectedCoordinate = nil
+                            self.showOutsidePHAlert = true
+                        }
                     }
-                    .fontWeight(.bold)
-                    .disabled(mountainName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || elevationText.isEmpty || isSubmitting)
                 }
+            }
+            .alert("Invalid Location", isPresented: $showOutsidePHAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("The pinned location appears to be outside the Philippines or in an undefined area. Please pin a valid location on land within the country.")
+            }
+            .alert("Success", isPresented: $showSuccessAlert) {
+                Button("OK") { dismiss() }
+            } message: {
+                Text("Your mountain contribution has been successfully submitted and is now pending review.")
             }
             .overlay {
                 if isSubmitting {
@@ -320,7 +368,7 @@ struct AddCustomMountainView: View {
                             ProgressView()
                                 .tint(.white)
                                 .scaleEffect(1.5)
-                            Text(isUploadingPhoto ? "Saving photo..." : "Saving mountain...")
+                            Text("Saving mountain...")
                                 .font(.headline)
                                 .foregroundColor(.white)
                         }
@@ -334,7 +382,26 @@ struct AddCustomMountainView: View {
         }
     }
     
-    private func submitMountain() {
+    private func submitCustomMountain() {
+        let cleanInputName = mountainName
+            .replacingOccurrences(of: "Mt.", with: "", options: .caseInsensitive)
+            .replacingOccurrences(of: "Mount", with: "", options: .caseInsensitive)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            
+        let isDuplicate = mountainsViewModel.publicPeaks.contains { peak in
+            let cleanDbName = peak.name
+                .replacingOccurrences(of: "Mt.", with: "", options: .caseInsensitive)
+                .replacingOccurrences(of: "Mount", with: "", options: .caseInsensitive)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return cleanDbName.caseInsensitiveCompare(cleanInputName) == .orderedSame
+        }
+        
+        if isDuplicate {
+            let trimmedName = mountainName.trimmingCharacters(in: .whitespacesAndNewlines)
+            errorMessage = "\"\(trimmedName)\" is already on PataGilid. Please check the name or try another peak."
+            return
+        }
+
         guard let elevation = Int(elevationText.trimmingCharacters(in: .whitespacesAndNewlines)), elevation > 0 else {
             errorMessage = "Please enter a valid numeric elevation in meters above sea level (MASL)."
             return
@@ -350,20 +417,15 @@ struct AddCustomMountainView: View {
         
         Task {
             do {
-                var uploadedPhotoUrl: String? = nil
-                if let photoData = selectedPhotoData {
-                    await MainActor.run { isUploadingPhoto = true }
-                    let timestamp = Int(Date().timeIntervalSince1970)
-                    let cleanFileName = mountainName.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "_")
-                    let fileName = "Mountain_\(cleanFileName)_\(timestamp)"
-                    uploadedPhotoUrl = try await GoogleDriveService.shared.uploadPhotoAsset(data: photoData, fileName: fileName)
-                    await MainActor.run { isUploadingPhoto = false }
-                }
-                
-                let newPeak = try await mountainsViewModel.submitCustomMountain(
+                let mountainId = UUID().uuidString
+                let newMountain = Mountain(
+                    id: mountainId,
                     name: mountainName.trimmingCharacters(in: .whitespacesAndNewlines),
+                    descriptionText: descriptionText.trimmingCharacters(in: .whitespacesAndNewlines),
                     elevationMASL: elevation,
-                    region: region.trimmingCharacters(in: .whitespacesAndNewlines),
+                    latitude: selectedCoordinate?.latitude,
+                    longitude: selectedCoordinate?.longitude,
+                    region: region,
                     islandGroup: selectedIslandGroup,
                     difficultyLevel: selectedDifficulty,
                     trailClass: selectedClass,
@@ -373,13 +435,12 @@ struct AddCustomMountainView: View {
                     description: descriptionText.isEmpty ? "Community contributed hiking trail and mountain summit." : descriptionText
                 )
                 
-                if let driveUrl = uploadedPhotoUrl {
-                    try? await UserMountainPhotoService.shared.savePhoto(for: newPeak.id, photoUrl: driveUrl)
-                }
+                // Add to firestore
+                try await mountainsViewModel.addCustomMountain(newMountain)
                 
                 await MainActor.run {
                     isSubmitting = false
-                    onMountainSelected(newPeak)
+                    onMountainSelected(newMountain)
                     dismiss()
                 }
             } catch {

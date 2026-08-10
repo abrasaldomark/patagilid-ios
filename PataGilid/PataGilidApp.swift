@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 import FirebaseCore
 import GoogleMaps
+import GooglePlaces
 import GoogleSignIn
 
 class AppDelegate: NSObject, UIApplicationDelegate {
@@ -20,6 +21,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Securely initialize Google Maps & Google Sign-In using credentials loaded from GoogleService-Info.plist
         if let apiKey = FirebaseApp.app()?.options.apiKey {
             GMSServices.provideAPIKey(apiKey)
+            GMSPlacesClient.provideAPIKey(apiKey)
         }
 
         if let clientID = FirebaseApp.app()?.options.clientID {

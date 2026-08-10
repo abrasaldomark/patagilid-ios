@@ -16,6 +16,7 @@ struct MainTabView: View {
     @StateObject private var mountainsViewModel = MountainsViewModel()
     @State private var showAdminQueue: Bool = false
     @State private var showDonationSheet: Bool = false
+    @State private var showMyContributions: Bool = false
     @State private var selectedTab: Int = 0
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = true
     
@@ -125,14 +126,14 @@ struct MainTabView: View {
                             showDonationSheet = true
                         } label: {
                             HStack(spacing: 14) {
-                                Text("☕️")
+                                Text("⛰️")
                                     .font(.system(size: 26))
                                     .frame(width: 44, height: 44)
                                     .background(Color.yellow.opacity(0.15))
                                     .clipShape(RoundedRectangle(cornerRadius: 10))
                                 
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text("Buy Me a Coffee")
+                                    Text("Pang akyat lang")
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
                                         .foregroundColor(.primary)
@@ -152,6 +153,17 @@ struct MainTabView: View {
                     }
                     
                     Section(header: Text("Account Settings")) {
+                        Button {
+                            showMyContributions = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "list.bullet.rectangle.portrait")
+                                    .foregroundColor(.gliderBlue)
+                                Text("My Contributions")
+                                    .foregroundColor(.primary)
+                            }
+                        }
+                        
                         Button {
                             hasSeenOnboarding = false
                         } label: {
@@ -175,6 +187,11 @@ struct MainTabView: View {
                     }
                 }
                 .navigationTitle("Profile & Settings")
+                .sheet(isPresented: $showMyContributions) {
+                    UserContributionsView()
+                        .environmentObject(mountainsViewModel)
+                        .environmentObject(authViewModel)
+                }
             }
             .tabItem {
                 Label("Profile", systemImage: "person.crop.circle.fill")

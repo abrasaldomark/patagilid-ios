@@ -25,10 +25,10 @@ struct DonationQRView: View {
 
                     // MARK: - Header
                     VStack(spacing: 10) {
-                        Text("☕️")
+                        Text("⛰️")
                             .font(.system(size: 56))
 
-                        Text("Buy Me a Coffee")
+                        Text("Pang akyat lang")
                             .font(.title2)
                             .fontWeight(.black)
 

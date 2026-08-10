@@ -17,6 +17,7 @@ struct AdminModerationQueueView: View {
     @State private var showMergeSheet: Bool = false
     @State private var isProcessing: Bool = false
     @State private var actionFeedback: String? = nil
+    @State private var selectedTab: Int = 0
     
     var body: some View {
         NavigationStack {
@@ -40,27 +41,46 @@ struct AdminModerationQueueView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(.systemGroupedBackground))
                 } else {
-                    List {
-                        if !mountainsViewModel.pendingReviewPeaks.isEmpty {
-                            Section(header: Text("Pending Community Mountains (\(mountainsViewModel.pendingReviewPeaks.count))"),
-                                    footer: Text("Approved mountains go live instantly on the public list. Merged mountains re-link contributor logs to an official entry and remove the duplicate.")) {
-                                ForEach(mountainsViewModel.pendingReviewPeaks) { peak in
-                                    pendingPeakCard(for: peak)
-                                        .padding(.vertical, 4)
-                                }
-                            }
+                    VStack(spacing: 0) {
+                        Picker("Queue Options", selection: $selectedTab) {
+                            Text("Submitted Mountains").tag(0)
+                            Text("GPS Calibrations").tag(1)
                         }
+                        .pickerStyle(.segmented)
+                        .padding()
+                        .background(Color(.systemGroupedBackground))
                         
-                        if !mountainsViewModel.pendingGPSPeaks.isEmpty {
-                            Section(header: Text("Pending GPS Calibrations (\(mountainsViewModel.pendingGPSPeaks.count))"),
-                                    footer: Text("Approved coordinates immediately calibrate the official mountain entry and grant a verified community badge nationwide via Delta-Sync.")) {
-                                ForEach(mountainsViewModel.pendingGPSPeaks) { mountain in
-                                    gpsSubmissionCard(for: mountain)
+                        if selectedTab == 0 {
+                            if mountainsViewModel.pendingReviewPeaks.isEmpty {
+                                emptyTabMessage(title: "No Submitted Mountains", message: "There are no community mountains pending review.")
+                            } else {
+                                List {
+                                    Section(header: Text("Pending Submitted Mountains (\(mountainsViewModel.pendingReviewPeaks.count))"),
+                                            footer: Text("Approved mountains go live instantly on the public list. Merged mountains re-link contributor logs to an official entry and remove the duplicate.")) {
+                                        ForEach(mountainsViewModel.pendingReviewPeaks) { peak in
+                                            pendingPeakCard(for: peak)
+                                                .padding(.vertical, 4)
+                                        }
+                                    }
                                 }
+                                .listStyle(.insetGrouped)
+                            }
+                        } else {
+                            if mountainsViewModel.pendingGPSPeaks.isEmpty {
+                                emptyTabMessage(title: "No GPS Calibrations", message: "There are no GPS calibrations pending review.")
+                            } else {
+                                List {
+                                    Section(header: Text("Pending GPS Calibrations (\(mountainsViewModel.pendingGPSPeaks.count))"),
+                                            footer: Text("Approved coordinates immediately calibrate the official mountain entry and grant a verified community badge nationwide via Delta-Sync.")) {
+                                        ForEach(mountainsViewModel.pendingGPSPeaks) { mountain in
+                                            gpsSubmissionCard(for: mountain)
+                                        }
+                                    }
+                                }
+                                .listStyle(.insetGrouped)
                             }
                         }
                     }
-                    .listStyle(.insetGrouped)
                 }
             }
             .navigationTitle("🛡️ Moderation Queue")
@@ -177,6 +197,23 @@ struct AdminModerationQueueView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.secondary.opacity(0.06))
             .cornerRadius(8)
+            // View Map Button
+            Button {
+                mountainToViewMap = peak
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "map.fill")
+                    Text("View Map")
+                }
+                .font(.caption)
+                .fontWeight(.bold)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.secondary.opacity(0.15))
+                .foregroundColor(.primary)
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
             
             // Actions Row
             HStack(spacing: 12) {
@@ -299,24 +336,25 @@ struct AdminModerationQueueView: View {
             .background(Color.secondary.opacity(0.06))
             .cornerRadius(8)
             
-            HStack(spacing: 8) {
-                Button {
-                    mountainToViewMap = mountain
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "map.fill")
-                        Text("View Map")
-                    }
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(Color.secondary.opacity(0.15))
-                    .foregroundColor(.primary)
-                    .cornerRadius(8)
+            // View Map Button
+            Button {
+                mountainToViewMap = mountain
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "map.fill")
+                    Text("View Map")
                 }
-                .buttonStyle(.plain)
-                
+                .font(.caption)
+                .fontWeight(.bold)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.secondary.opacity(0.15))
+                .foregroundColor(.primary)
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+
+            HStack(spacing: 8) {
                 Button {
                     Task { await handleRejectGPS(mountain) }
                 } label: {

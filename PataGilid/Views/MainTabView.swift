@@ -17,6 +17,7 @@ struct MainTabView: View {
     @State private var showAdminQueue: Bool = false
     @State private var showDonationSheet: Bool = false
     @State private var showMyContributions: Bool = false
+    @State private var showSponsors: Bool = false
     @State private var selectedTab: Int = 0
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = true
     
@@ -148,6 +149,38 @@ struct MainTabView: View {
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
+                            }
+                        }
+                        .padding(.vertical, 4)
+                        
+                        Button {
+                            showSponsors = true
+                        } label: {
+                            HStack(spacing: 14) {
+                                Image(systemName: "heart.circle.fill")
+                                    .font(.system(size: 26))
+                                    .frame(width: 44, height: 44)
+                                    .foregroundColor(.gliderBlue)
+                                    .background(Color.gliderBlue.opacity(0.15))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("Donators & Sponsors")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.primary)
+                                    Text("See the organizations and hikers who make PataGilid possible.")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.leading)
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                         .padding(.vertical, 4)
                     }
@@ -208,6 +241,9 @@ struct MainTabView: View {
         }
         .sheet(isPresented: $showDonationSheet) {
             DonationQRView()
+        }
+        .sheet(isPresented: $showSponsors) {
+            SponsorsView()
         }
     }
     

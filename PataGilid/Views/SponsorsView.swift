@@ -99,6 +99,7 @@ struct SponsorsView: View {
         }
     }
 }
+}
 
 #Preview {
     SponsorsView()

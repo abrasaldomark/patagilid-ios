@@ -149,7 +149,6 @@ struct MainTabView: View {
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
-                            }
                         }
                         .padding(.vertical, 4)
                         

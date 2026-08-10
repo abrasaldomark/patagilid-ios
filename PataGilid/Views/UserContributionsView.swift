@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseFirestore
+import FirebaseAuth
 
 struct UserContributionsView: View {
     @EnvironmentObject var mountainsViewModel: MountainsViewModel

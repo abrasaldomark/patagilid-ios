@@ -1107,7 +1107,7 @@ struct InteractiveCoordinatePickerView: View {
                 return
             }
             
-            let fields: GMSPlaceField = GMSPlaceField(rawValue: UInt(GMSPlaceField.coordinate.rawValue))
+            let fields: GMSPlaceField = GMSPlaceField(rawValue: UInt64(GMSPlaceField.coordinate.rawValue))
             GMSPlacesClient.shared().fetchPlace(fromPlaceID: firstResult.placeID, placeFields: fields, sessionToken: nil) { (place, error) in
                 isSearching = false
                 if let error = error {

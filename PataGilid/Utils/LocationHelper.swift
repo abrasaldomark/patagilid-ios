@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreLocation
+import FirebaseCore
 
 class LocationHelper {
     
@@ -124,5 +125,11 @@ class LocationHelper {
         
         // Fallback if not matched
         return (nil, nil)
+    }
+}
+
+extension CLLocationCoordinate2D: Equatable {
+    public static func == (lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
+        return lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude
     }
 }

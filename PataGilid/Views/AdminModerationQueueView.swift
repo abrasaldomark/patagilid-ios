@@ -124,6 +124,29 @@ struct AdminModerationQueueView: View {
         }
     }
     
+    // MARK: - Empty States
+    
+    @ViewBuilder
+    private func emptyTabMessage(title: String, message: String) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 60))
+                .foregroundColor(.green.opacity(0.6))
+            
+            Text(title)
+                .font(.title2)
+                .fontWeight(.bold)
+            
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, 40)
+    }
+    
     // MARK: - Cards
     
     @ViewBuilder

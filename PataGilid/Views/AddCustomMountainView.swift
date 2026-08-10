@@ -7,6 +7,8 @@
 
 import SwiftUI
 import FirebaseAuth
+import CoreLocation
+
 struct AddCustomMountainView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -103,187 +105,25 @@ struct AddCustomMountainView: View {
             Form {
                 // MARK: - Purpose Guidance Banner
                 if showInfoCard {
-                    Section {
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: "info.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(.gliderBlue)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Contributing to PataGilid List")
-                                    .font(.subheadline)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.primary)
-                                Text("Submit an unlisted mountain. It will be reviewed by admins before becoming public.")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            Spacer()
-                            Button(action: { showInfoCard = false }) {
-                                Image(systemName: "xmark")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.vertical, 4)
-                    }
-                    .listRowBackground(Color.gliderBlue.opacity(0.1))
+                    infoCardSection
                 }
                 
                 // MARK: - Smart Suggest (Duplicate Prevention Banner)
                 if !similarPeaks.isEmpty {
-                    Section {
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "magnifyingglass.circle.fill")
-                                    .foregroundColor(.orange)
-                                    .font(.title3)
-                                Text("Similar Mountains Found in PataGilid")
-                                    .font(.subheadline)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.primary)
-                            }
-                            
-                            Text("Before submitting a new entry, check if your mountain is already listed:")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            ForEach(similarPeaks) { peak in
-                                Button {
-                                    onMountainSelected(peak)
-                                    dismiss()
-                                } label: {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(peak.name)
-                                                .font(.subheadline)
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(.primary)
-                                            Text("\(peak.elevationMASL) MASL • \(peak.region)")
-                                                .font(.caption2)
-                                                .foregroundColor(.secondary)
-                                        }
-                                        Spacer()
-                                        Text("Select")
-                                            .font(.caption)
-                                            .fontWeight(.bold)
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 4)
-                                            .background(Color.gliderBlue.opacity(0.15))
-                                            .foregroundColor(.gliderBlue)
-                                            .cornerRadius(8)
-                                    }
-                                    .padding(.vertical, 4)
-                                }
-                                .buttonStyle(.plain)
-                                Divider()
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                    .listRowBackground(Color.orange.opacity(0.1))
+                    similarPeaksSection
                 }
                 
                 // MARK: - Core Mountain Details & Location
-                Section(header: Text("Mountain Information")) {
-                    Button(action: {
-                        isMapPresented = true
-                    }) {
-                        HStack {
-                            Spacer()
-                            Image(systemName: "map.fill")
-                            Text(selectedCoordinate != nil ? "Edit Pinned Location" : "Pin Location on Map")
-                                .fontWeight(.semibold)
-                            Spacer()
-                        }
-                    }
-                    .foregroundColor(.white)
-                    .listRowBackground(Color.gliderBlue)
-                    
-                    if let coord = selectedCoordinate {
-                        HStack {
-                            Text("Pinned Location")
-                                .foregroundColor(.primary)
-                            Spacer()
-                            Text(String(format: "%.4f, %.4f", coord.latitude, coord.longitude))
-                                .foregroundColor(.secondary)
-                        }
-                        .font(.subheadline)
-                    }
-                    
-                    TextField("Mountain Name (e.g. Mt. Tagapo)", text: $mountainName)
-                        .autocapitalization(.words)
-                    
-                    ZStack(alignment: .trailing) {
-                        TextField("Elevation in MASL (e.g. 270)", text: $elevationText)
-                            .keyboardType(.numberPad)
-                        
-                        if isFetchingElevation {
-                            ProgressView()
-                        }
-                    }
-                    
-                    Picker("Island Group", selection: $selectedIslandGroup) {
-                        ForEach(IslandGroup.allCases) { group in
-                            Text(group.rawValue).tag(group)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.vertical, 4)
-                    .onChange(of: selectedIslandGroup) { _ in
-                        if let first = availableRegionsForSelectedIsland.first {
-                            region = first
-                        }
-                    }
-                    
-                    Picker("Region", selection: $region) {
-                        ForEach(availableRegionsForSelectedIsland, id: \.self) { reg in
-                            Text(reg).tag(reg)
-                        }
-                    }
-                }
+                coreDetailsSection
                 
                 // MARK: - Difficulty Ratings
-                Section(header: Text("Difficulty & Terrain")) {
-                    Picker("Difficulty Rating", selection: $selectedDifficulty) {
-                        ForEach(difficulties, id: \.self) { diff in
-                            Text(diff).tag(diff)
-                        }
-                    }
-                    
-                    Picker("Trail Class", selection: $selectedClass) {
-                        ForEach(trailClasses, id: \.self) { tClass in
-                            Text(tClass).tag(tClass)
-                        }
-                    }
-                }
+                difficultySection
                 
                 // MARK: - Optional Description
-                Section(header: Text("Brief Description (Optional)"), footer: Text("Submitted mountains are immediately available for your personal summit logs. They will display on the nationwide public list once verified by a PataGilid admin.")) {
-                    TextEditor(text: $descriptionText)
-                        .frame(minHeight: 80)
-                }
+                descriptionSection
                 
                 // MARK: - Submit Button
-                Section {
-                    Button(action: submitCustomMountain) {
-                        HStack {
-                            Spacer()
-                            Image(systemName: "mountain.2.fill")
-                            Text("Submit Mountain for Moderation")
-                                .fontWeight(.bold)
-                            Spacer()
-                        }
-                    }
-                    .disabled(mountainName.isEmpty || elevationText.isEmpty || isSubmitting)
-                    .listRowBackground(
-                        (mountainName.isEmpty || elevationText.isEmpty) ? Color.gray.opacity(0.3) : Color.gliderBlue
-                    )
-                    .foregroundColor(
-                        (mountainName.isEmpty || elevationText.isEmpty) ? Color(uiColor: .systemGray) : .white
-                    )
-                }
+                submitButtonSection
             }
             .onAppear {
                 if region.isEmpty, let first = availableRegionsForSelectedIsland.first {
@@ -417,14 +257,10 @@ struct AddCustomMountainView: View {
         
         Task {
             do {
-                let mountainId = UUID().uuidString
-                let newMountain = Mountain(
-                    id: mountainId,
-                    name: mountainName.trimmingCharacters(in: .whitespacesAndNewlines),
-                    descriptionText: descriptionText.trimmingCharacters(in: .whitespacesAndNewlines),
+                // Add to firestore and local sync
+                let newMountain = try await mountainsViewModel.submitCustomMountain(
+                    name: mountainName,
                     elevationMASL: elevation,
-                    latitude: selectedCoordinate?.latitude,
-                    longitude: selectedCoordinate?.longitude,
                     region: region,
                     islandGroup: selectedIslandGroup,
                     difficultyLevel: selectedDifficulty,
@@ -432,11 +268,8 @@ struct AddCustomMountainView: View {
                     contributorId: userId,
                     contributorEmail: authViewModel.currentUser?.email,
                     contributorName: authViewModel.currentUser?.displayName?.components(separatedBy: " ").first?.capitalized ?? authViewModel.currentUser?.email?.formattedFirstName,
-                    description: descriptionText.isEmpty ? "Community contributed hiking trail and mountain summit." : descriptionText
+                    description: descriptionText.isEmpty ? "Community contributed hiking trail and mountain summit." : descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
                 )
-                
-                // Add to firestore
-                try await mountainsViewModel.addCustomMountain(newMountain)
                 
                 await MainActor.run {
                     isSubmitting = false
@@ -449,6 +282,195 @@ struct AddCustomMountainView: View {
                     errorMessage = "Failed to save mountain: \(error.localizedDescription)"
                 }
             }
+        }
+    }
+    
+    @ViewBuilder
+    private var infoCardSection: some View {
+        Section {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "info.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.gliderBlue)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Contributing to PataGilid List")
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    Text("Submit an unlisted mountain. It will be reviewed by admins before becoming public.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                Button(action: { showInfoCard = false }) {
+                    Image(systemName: "xmark")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.vertical, 4)
+        }
+        .listRowBackground(Color.gliderBlue.opacity(0.1))
+    }
+    
+    @ViewBuilder
+    private var similarPeaksSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                    Text("Similar Peaks Found")
+                        .font(.headline)
+                }
+                
+                Text("Before submitting a new entry, check if your mountain is already listed:")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                ForEach(similarPeaks) { peak in
+                    Button {
+                        onMountainSelected(peak)
+                        dismiss()
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(peak.name)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+                                Text(String(format: "%d MASL • %@", peak.elevationMASL, peak.region))
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Text("Select")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(Color.gliderBlue.opacity(0.15))
+                                .foregroundColor(.gliderBlue)
+                                .cornerRadius(8)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                    Divider()
+                }
+            }
+            .padding(.vertical, 4)
+        }
+        .listRowBackground(Color.orange.opacity(0.1))
+    }
+    
+    @ViewBuilder
+    private var coreDetailsSection: some View {
+        Section(header: Text("Mountain Information")) {
+            Button(action: {
+                isMapPresented = true
+            }) {
+                HStack {
+                    Spacer()
+                    Image(systemName: "map.fill")
+                    Text(selectedCoordinate != nil ? "Edit Pinned Location" : "Pin Location on Map")
+                        .fontWeight(.semibold)
+                    Spacer()
+                }
+            }
+            .foregroundColor(.white)
+            .listRowBackground(Color.gliderBlue)
+            
+            if let coord = selectedCoordinate {
+                HStack {
+                    Text("Pinned Location")
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Text(String(format: "%.4f, %.4f", coord.latitude, coord.longitude))
+                        .foregroundColor(.secondary)
+                }
+                .font(.subheadline)
+            }
+            
+            TextField("Mountain Name (e.g. Mt. Tagapo)", text: $mountainName)
+                .autocapitalization(.words)
+            
+            ZStack(alignment: .trailing) {
+                TextField("Elevation in MASL (e.g. 270)", text: $elevationText)
+                    .keyboardType(.numberPad)
+                
+                if isFetchingElevation {
+                    ProgressView()
+                }
+            }
+            
+            Picker("Island Group", selection: $selectedIslandGroup) {
+                ForEach(IslandGroup.allCases) { group in
+                    Text(group.rawValue).tag(group)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.vertical, 4)
+            .onChange(of: selectedIslandGroup) { _ in
+                if let first = availableRegionsForSelectedIsland.first {
+                    region = first
+                }
+            }
+            
+            Picker("Region", selection: $region) {
+                ForEach(availableRegionsForSelectedIsland, id: \.self) { reg in
+                    Text(reg).tag(reg)
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var difficultySection: some View {
+        Section(header: Text("Difficulty & Terrain")) {
+            Picker("Difficulty Rating", selection: $selectedDifficulty) {
+                ForEach(difficulties, id: \.self) { diff in
+                    Text(diff).tag(diff)
+                }
+            }
+            
+            Picker("Trail Class", selection: $selectedClass) {
+                ForEach(trailClasses, id: \.self) { tClass in
+                    Text(tClass).tag(tClass)
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var descriptionSection: some View {
+        Section(header: Text("Brief Description (Optional)"), footer: Text("Submitted mountains are immediately available for your personal summit logs. They will display on the nationwide public list once verified by a PataGilid admin.")) {
+            TextEditor(text: $descriptionText)
+                .frame(minHeight: 80)
+        }
+    }
+    
+    @ViewBuilder
+    private var submitButtonSection: some View {
+        Section {
+            Button(action: submitCustomMountain) {
+                HStack {
+                    Spacer()
+                    Image(systemName: "mountain.2.fill")
+                    Text("Submit Custom Peak")
+                        .fontWeight(.bold)
+                    Spacer()
+                }
+            }
+            .disabled(mountainName.isEmpty || elevationText.isEmpty || isSubmitting)
+            .foregroundColor(
+                (mountainName.isEmpty || elevationText.isEmpty) ? Color(uiColor: .systemGray) : .white
+            )
+            .listRowBackground(
+                (mountainName.isEmpty || elevationText.isEmpty || isSubmitting) ? Color.gray.opacity(0.3) : Color.gliderBlue
+            )
         }
     }
 }

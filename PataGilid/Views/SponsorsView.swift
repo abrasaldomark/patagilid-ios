@@ -68,8 +68,9 @@ struct SponsorsView: View {
                     }
                 }
             }
-            
-            if showFullImage {
+        } // End of NavigationView
+        
+        if showFullImage {
                 Color.black.opacity(0.9)
                     .edgesIgnoringSafeArea(.all)
                     .onTapGesture {
@@ -98,7 +99,6 @@ struct SponsorsView: View {
             }
         }
     }
-}
 }
 
 #Preview {

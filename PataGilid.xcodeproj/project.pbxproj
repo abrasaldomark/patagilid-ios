@@ -12,6 +12,7 @@
 		3F1B80FD89AEBC1EA14CA4A5 /* GoogleMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 6300E74A26838701F5F520EE /* GoogleMaps */; };
 		426A14FA92BE89B5859FDB91 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 06CD5044F86AAD3EC9C6DA8D /* FirebaseCore */; };
 		4D686F044ED6BE4E8508BB3C /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 63C72D0872D2AE19CAAC573E /* FirebaseFirestore */; };
+		5449E70B302A3D2900280B0B /* GooglePlaces in Frameworks */ = {isa = PBXBuildFile; productRef = 5449E70A302A3D2900280B0B /* GooglePlaces */; };
 		54B3876F301724C000CAAC0B /* GoogleMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 54B3876E301724C000CAAC0B /* GoogleMaps */; };
 		54B38772301724D700CAAC0B /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 54B38771301724D700CAAC0B /* GoogleSignIn */; };
 		54B387753017253700CAAC0B /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 54B387743017253700CAAC0B /* FirebaseAnalytics */; };
@@ -52,7 +53,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		54B387A93017489500CAAC0B /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		54B387A93017489500CAAC0B /* Exceptions for "PataGilid" folder in "PataGilid" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -65,7 +66,7 @@
 		54778C2B301721DE000E29EB /* PataGilid */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				54B387A93017489500CAAC0B /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+				54B387A93017489500CAAC0B /* Exceptions for "PataGilid" folder in "PataGilid" target */,
 			);
 			path = PataGilid;
 			sourceTree = "<group>";
@@ -90,6 +91,7 @@
 				54B3876F301724C000CAAC0B /* GoogleMaps in Frameworks */,
 				54B38772301724D700CAAC0B /* GoogleSignIn in Frameworks */,
 				54B3877D3017253700CAAC0B /* FirebaseMessaging in Frameworks */,
+				5449E70B302A3D2900280B0B /* GooglePlaces in Frameworks */,
 				54B387793017253700CAAC0B /* FirebaseCrashlytics in Frameworks */,
 				54B387753017253700CAAC0B /* FirebaseAnalytics in Frameworks */,
 				54B387773017253700CAAC0B /* FirebaseAuth in Frameworks */,
@@ -124,6 +126,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		5449E709302A3D2900280B0B /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		54778C20301721DE000E29EB = {
 			isa = PBXGroup;
 			children = (
@@ -132,6 +141,7 @@
 				54778C45301721E0000E29EB /* PataGilidUITests */,
 				54778C2A301721DE000E29EB /* Products */,
 				54B387A63017471F00CAAC0B /* GoogleService-Info.plist */,
+				5449E709302A3D2900280B0B /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -175,6 +185,7 @@
 				54B3877C3017253700CAAC0B /* FirebaseMessaging */,
 				06CD5044F86AAD3EC9C6DA8D /* FirebaseCore */,
 				85482906498B2315B1925EA4 /* FirebaseStorage */,
+				5449E70A302A3D2900280B0B /* GooglePlaces */,
 			);
 			productName = PataGilid;
 			productReference = 54778C29301721DE000E29EB /* PataGilid.app */;
@@ -760,6 +771,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 54B387733017253700CAAC0B /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
+		};
+		5449E70A302A3D2900280B0B /* GooglePlaces */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB06FB892F1A8941C6A6DEA5 /* XCRemoteSwiftPackageReference "ios-places-sdk" */;
+			productName = GooglePlaces;
 		};
 		54B3876E301724C000CAAC0B /* GoogleMaps */ = {
 			isa = XCSwiftPackageProductDependency;

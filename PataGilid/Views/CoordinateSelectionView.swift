@@ -29,6 +29,7 @@ struct CoordinateSelectionView: View {
     @State private var isSearching: Bool = false
     @State private var searchError: String? = nil
     @State private var ignoreSearchTextChange: Bool = false
+    @State private var showInstructions: Bool = true
     
     private func fetchPredictions(query: String) {
         guard !query.isEmpty else {
@@ -99,21 +100,6 @@ struct CoordinateSelectionView: View {
                 .edgesIgnoringSafeArea(.all)
                 
                 VStack(spacing: 12) {
-                    // Instructions banner at the top
-                    HStack(spacing: 6) {
-                        Image(systemName: "hand.tap.fill")
-                            .foregroundColor(.gliderBlue)
-                        Text("Tap or long-press on the map to place a pin")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(.thinMaterial)
-                    .clipShape(Capsule())
-                    .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
-                    
                     // Search Bar
                     VStack(spacing: 0) {
                         HStack {
@@ -220,6 +206,33 @@ struct CoordinateSelectionView: View {
                     .padding(.bottom, 24)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .animation(.spring(), value: tempCoordinate != nil)
+                } else if showInstructions {
+                    HStack(spacing: 16) {
+                        Image(systemName: "hand.tap.fill")
+                            .font(.title2)
+                            .foregroundColor(.gliderBlue)
+                        
+                        Text("Tap anywhere on the map to place a pin on the mountain's summit.")
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        
+                        Button {
+                            withAnimation { showInstructions = false }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 16)
+                    .padding(.horizontal, 20)
+                    .background(Color(.systemBackground))
+                    .cornerRadius(16)
+                    .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 32)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .navigationTitle("Select Summit Location")

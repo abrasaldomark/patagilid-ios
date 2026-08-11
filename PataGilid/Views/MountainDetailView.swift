@@ -686,23 +686,24 @@ struct CoordinateContributionView: View {
     
     private var availableRegions: [String] {
         var defaultRegions = [
-            "BARMM (Bangsamoro)",
-            "CAR (Cordillera Administrative Region)",
-            "NCR (National Capital Region)",
-            "Region 1 (Ilocos Region)",
-            "Region 2 (Cagayan Valley)",
-            "Region 3 (Central Luzon)",
-            "Region 4A (CALABARZON)",
-            "Region 4B (MIMAROPA)",
-            "Region 5 (Bicol Region)",
-            "Region 6 (Western Visayas)",
-            "Region 7 (Central Visayas)",
-            "Region 8 (Eastern Visayas)",
-            "Region 9 (Zamboanga Peninsula)",
-            "Region 10 (Northern Mindanao)",
-            "Region 11 (Davao Region)",
-            "Region 12 (SOCCSKSARGEN)",
-            "Region 13 (Caraga)"
+            "NCR – National Capital Region (Metro Manila)",
+            "CAR – Cordillera Administrative Region",
+            "Region 1 – Ilocos Region",
+            "Region 2 – Cagayan Valley",
+            "Region 3 – Central Luzon",
+            "Region 4-A – CALABARZON",
+            "MIMAROPA – Southwestern Tagalog Region",
+            "Region 5 – Bicol Region",
+            "Region 6 – Western Visayas",
+            "NIR – Negros Island Region",
+            "Region 7 – Central Visayas",
+            "Region 8 – Eastern Visayas",
+            "Region 9 – Zamboanga Peninsula",
+            "Region 10 – Northern Mindanao",
+            "Region 11 – Davao Region",
+            "Region 12 – SOCCSKSARGEN",
+            "Region 13 – Caraga",
+            "BARMM – Bangsamoro Autonomous Region in Muslim Mindanao"
         ]
         if !defaultRegions.contains(mountain.region) && !mountain.region.isEmpty {
             defaultRegions.append(mountain.region)

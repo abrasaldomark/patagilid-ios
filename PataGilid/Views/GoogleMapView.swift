@@ -52,12 +52,12 @@ struct GoogleMapView: UIViewRepresentable {
     
     private func calculateZoomLevel(for distance: CLLocationDistance) -> Float {
         // Simple heuristic: Google Maps zoom levels go from 0 to roughly 20.
-        // A distance of 5000m roughly corresponds to zoom 13.
-        // 1.2M m corresponds to zoom 6.
+        // A distance of 5000m roughly corresponds to zoom 12.
+        // 1.2M m corresponds to zoom 5.5.
         if distance > 100_000 {
-            return 6.0
+            return 5.5
         } else {
-            return 13.0
+            return 12.0
         }
     }
     

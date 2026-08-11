@@ -80,9 +80,17 @@ class MountainsViewModel: ObservableObject {
     }
     
     var availableRegions: [String] {
-        let candidatePeaks = selectedIslandGroup != nil ? publicPeaks.filter { $0.islandGroup == selectedIslandGroup } : publicPeaks
-        let regions = candidatePeaks.map { $0.region }.removingDuplicates()
-        return regions.sorted { $0.compare($1, options: [.numeric, .caseInsensitive]) == .orderedAscending }
+        if let island = selectedIslandGroup {
+            switch island {
+            case .luzon:
+                return Array(LocationHelper.canonicalRegions[0...7])
+            case .visayas:
+                return Array(LocationHelper.canonicalRegions[8...11])
+            case .mindanao:
+                return Array(LocationHelper.canonicalRegions[12...17])
+            }
+        }
+        return LocationHelper.canonicalRegions
     }
     
     var filteredAndSortedPeaks: [Mountain] {

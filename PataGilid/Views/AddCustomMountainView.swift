@@ -58,29 +58,30 @@ struct AddCustomMountainView: View {
         switch selectedIslandGroup {
         case .luzon:
             return [
-                "CAR (Cordillera Administrative Region)",
-                "Region 1 (Ilocos Region)",
-                "Region 2 (Cagayan Valley)",
-                "Region 3 (Central Luzon)",
-                "Region 4A (CALABARZON)",
-                "Region 4B (MIMAROPA)",
-                "Region 5 (Bicol Region)",
-                "NCR (National Capital Region)"
+                "NCR – National Capital Region (Metro Manila)",
+                "CAR – Cordillera Administrative Region",
+                "Region 1 – Ilocos Region",
+                "Region 2 – Cagayan Valley",
+                "Region 3 – Central Luzon",
+                "Region 4-A – CALABARZON",
+                "MIMAROPA – Southwestern Tagalog Region",
+                "Region 5 – Bicol Region"
             ]
         case .visayas:
             return [
-                "Region 6 (Western Visayas)",
-                "Region 7 (Central Visayas)",
-                "Region 8 (Eastern Visayas)"
+                "Region 6 – Western Visayas",
+                "NIR – Negros Island Region",
+                "Region 7 – Central Visayas",
+                "Region 8 – Eastern Visayas"
             ]
         case .mindanao:
             return [
-                "Region 9 (Zamboanga Peninsula)",
-                "Region 10 (Northern Mindanao)",
-                "Region 11 (Davao Region)",
-                "Region 12 (SOCCSKSARGEN)",
-                "Region 13 (Caraga)",
-                "BARMM (Bangsamoro)"
+                "Region 9 – Zamboanga Peninsula",
+                "Region 10 – Northern Mindanao",
+                "Region 11 – Davao Region",
+                "Region 12 – SOCCSKSARGEN",
+                "Region 13 – Caraga",
+                "BARMM – Bangsamoro Autonomous Region in Muslim Mindanao"
             ]
         }
     }
@@ -462,7 +463,7 @@ struct AddCustomMountainView: View {
                 HStack {
                     Spacer()
                     Image(systemName: "mountain.2.fill")
-                    Text("Submit Custom Peak")
+                    Text("Submit mountain for approval")
                         .fontWeight(.bold)
                     Spacer()
                 }

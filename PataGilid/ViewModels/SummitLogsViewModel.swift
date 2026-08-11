@@ -101,14 +101,17 @@ class SummitLogsViewModel: ObservableObject {
     }
     
     func availableRegions(using allPeaks: [Mountain]) -> [String] {
-        let candidateLogs = selectedIslandGroup != nil ? logs.filter { log in
-            let m = allPeaks.first(where: { $0.id == log.mountainId }) ?? mountainMap[log.mountainId]
-            return m?.islandGroup == selectedIslandGroup
-        } : logs
-        let regions = candidateLogs.compactMap { log in
-            (allPeaks.first(where: { $0.id == log.mountainId }) ?? mountainMap[log.mountainId])?.region
-        }.removingDuplicates()
-        return regions.sorted { $0.compare($1, options: [.numeric, .caseInsensitive]) == .orderedAscending }
+        if let island = selectedIslandGroup {
+            switch island {
+            case .luzon:
+                return Array(LocationHelper.canonicalRegions[0...7])
+            case .visayas:
+                return Array(LocationHelper.canonicalRegions[8...11])
+            case .mindanao:
+                return Array(LocationHelper.canonicalRegions[12...17])
+            }
+        }
+        return LocationHelper.canonicalRegions
     }
     
     func filteredAndSortedLogs(using allPeaks: [Mountain]) -> [HikeLog] {

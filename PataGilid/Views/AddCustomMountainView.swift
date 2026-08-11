@@ -369,30 +369,33 @@ struct AddCustomMountainView: View {
     @ViewBuilder
     private var coreDetailsSection: some View {
         Section(header: Text("Mountain Information")) {
-            Button(action: {
-                isMapPresented = true
-            }) {
-                HStack {
-                    Spacer()
-                    Image(systemName: "map.fill")
-                    Text(selectedCoordinate != nil ? "Edit Pinned Location" : "Pin Location on Map")
-                        .fontWeight(.semibold)
-                    Spacer()
+            VStack(spacing: 8) {
+                Button(action: {
+                    isMapPresented = true
+                }) {
+                    HStack {
+                        Spacer()
+                        Image(systemName: "map.fill")
+                        Text(selectedCoordinate != nil ? "Edit Pinned Location" : "Pin Location on Map")
+                            .fontWeight(.semibold)
+                        Spacer()
+                    }
+                    .padding(.vertical, 14)
+                    .background(Color.gliderBlue)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
                 }
-            }
-            .foregroundColor(.white)
-            .listRowBackground(Color.gliderBlue)
-            
-            if let coord = selectedCoordinate {
-                HStack {
-                    Text("Pinned Location")
-                        .foregroundColor(.primary)
-                    Spacer()
-                    Text(String(format: "%.4f, %.4f", coord.latitude, coord.longitude))
+                .buttonStyle(.plain)
+                
+                if let coord = selectedCoordinate {
+                    Text(String(format: "Pinned: %.4f, %.4f", coord.latitude, coord.longitude))
+                        .font(.caption)
                         .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 4)
                 }
-                .font(.subheadline)
             }
+            .padding(.vertical, 4)
             
             TextField("Mountain Name (e.g. Mt. Tagapo)", text: $mountainName)
                 .autocapitalization(.words)

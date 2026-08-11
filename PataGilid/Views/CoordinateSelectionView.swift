@@ -28,6 +28,7 @@ struct CoordinateSelectionView: View {
     @State private var searchPredictions: [GMSAutocompletePrediction] = []
     @State private var isSearching: Bool = false
     @State private var searchError: String? = nil
+    @State private var ignoreSearchTextChange: Bool = false
     
     private func fetchPredictions(query: String) {
         guard !query.isEmpty else {
@@ -52,6 +53,8 @@ struct CoordinateSelectionView: View {
     }
     
     private func selectPrediction(_ prediction: GMSAutocompletePrediction) {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        ignoreSearchTextChange = true
         searchText = prediction.attributedPrimaryText.string
         searchPredictions = []
         isSearching = true
@@ -86,6 +89,8 @@ struct CoordinateSelectionView: View {
                     isInteractivePicker: true,
                     isDraggableAnnotation: true,
                     onAnnotationDrag: { newCoord in
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                        searchPredictions = []
                         tempCoordinate = newCoord
                         currentPlaceName = nil
                     },
@@ -115,6 +120,10 @@ struct CoordinateSelectionView: View {
                             Image(systemName: "magnifyingglass").foregroundColor(.gliderBlue)
                             TextField("Search mountain, summit, or trail...", text: $searchText)
                                 .onChange(of: searchText) { newValue in
+                                    if ignoreSearchTextChange {
+                                        ignoreSearchTextChange = false
+                                        return
+                                    }
                                     fetchPredictions(query: newValue)
                                 }
                                 .submitLabel(.search)

@@ -58,53 +58,22 @@ struct MountainsListView: View {
                 }
                 
                 // Island Group Filter Bar
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        FilterPill(title: "All (\(viewModel.publicPeaks.count))", assetImage: "philippines_icon", isSelected: viewModel.selectedIslandGroup == nil && viewModel.selectedRegion == nil) {
-                            viewModel.resetFilters()
-                        }
-                        
-                        ForEach(IslandGroup.allCases) { group in
-                            FilterPill(title: group.rawValue, systemImage: group.systemImageName, assetImage: group.assetImageName, isSelected: viewModel.selectedIslandGroup == group) {
-                                viewModel.selectIslandGroup(group)
-                            }
-                        }
-                        
-                        // Active Region Badge indicator
-                        if let activeRegion = viewModel.selectedRegion {
-                            HStack(spacing: 4) {
-                                Text(activeRegion)
-                                    .lineLimit(1)
-                                Image(systemName: "xmark.circle.fill")
-                            }
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color.orange.opacity(0.2))
-                            .foregroundColor(.orange)
-                            .clipShape(Capsule())
-                            .onTapGesture {
-                                viewModel.selectedRegion = nil
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                    .padding(.vertical, 10)
-                }
-                .background(Color.secondary.opacity(0.06))
+                IslandGroupFilterBar(
+                    allCount: viewModel.publicPeaks.count,
+                    selectedIslandGroup: viewModel.selectedIslandGroup,
+                    selectedRegion: viewModel.selectedRegion,
+                    isAllSelected: viewModel.selectedIslandGroup == nil && viewModel.selectedRegion == nil,
+                    onResetFilters: { viewModel.resetFilters() },
+                    onSelectIslandGroup: { viewModel.selectIslandGroup($0) },
+                    onClearRegion: { viewModel.selectedRegion = nil }
+                )
                 
                 // Peak Count Banner
-                HStack {
-                    Text("Showing \(viewModel.filteredAndSortedPeaks.count) of \(viewModel.publicPeaks.count) Mountains")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .contentTransition(.numericText(value: Double(viewModel.publicPeaks.count)))
-                        .animation(.snappy, value: viewModel.publicPeaks.count)
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 6)
+                CountBanner(
+                    filteredCount: viewModel.filteredAndSortedPeaks.count,
+                    totalCount: viewModel.publicPeaks.count,
+                    noun: "Mountains"
+                )
                 
                 // Ultra-thin progress bar displayed when downloading/synchronizing mountains
                 if viewModel.isDownloading || viewModel.isLoading {
@@ -200,52 +169,17 @@ struct MountainsListView: View {
                 
                 // Sorting & Region Filters Menu
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 12) {
-                        Button {
-                            isSearchVisible = true
-                        } label: {
-                            Image(systemName: "magnifyingglass.circle.fill")
-                                .font(.title3)
-                                .foregroundColor(.gliderBlue)
-                        }
+                    SearchFilterToolbar(isSearchVisible: $isSearchVisible) {
+                        SortOrderMenuSection(
+                            currentOrder: viewModel.sortOrder,
+                            onSelect: { viewModel.sortOrder = $0 }
+                        )
                         
-                        Menu {
-                            Section(header: Text("Sort Order")) {
-                                ForEach(PeakSortOrder.allCases, id: \.self) { order in
-                                    Button(action: { viewModel.sortOrder = order }) {
-                                        HStack {
-                                            Text(order.rawValue)
-                                            if viewModel.sortOrder == order {
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            Section(header: Text("Filter by Region")) {
-                                Button(action: { viewModel.selectRegion(nil) }) {
-                                    Text("All Regions")
-                                }
-                                
-                                ForEach(viewModel.availableRegions, id: \.self) { region in
-                                    Button(action: {
-                                        viewModel.selectRegion(region)
-                                    }) {
-                                        HStack {
-                                            Text(region)
-                                            if viewModel.selectedRegion == region {
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                                .font(.title3)
-                                .foregroundColor(.gliderBlue)
-                        }
+                        RegionFilterMenuSection(
+                            availableRegions: viewModel.availableRegions,
+                            selectedRegion: viewModel.selectedRegion,
+                            onSelectRegion: { viewModel.selectRegion($0) }
+                        )
                     }
                 }
             }
@@ -265,39 +199,6 @@ struct MountainsListView: View {
     }
 }
 
-struct FilterPill: View {
-    let title: String
-    var systemImage: String? = nil
-    var assetImage: String? = nil
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 5) {
-                if let systemImage = systemImage {
-                    Image(systemName: systemImage)
-                        .font(.caption2)
-                } else if let assetImage = assetImage {
-                    Image(assetImage)
-                        .resizable()
-                        .renderingMode(.template)
-                        .scaledToFit()
-                        .frame(width: 18, height: 18)
-                }
-                Text(title)
-            }
-                .font(.caption)
-                .fontWeight(isSelected ? .bold : .semibold)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(isSelected ? Color.gliderBlue : Color.secondary.opacity(0.15))
-                .foregroundColor(isSelected ? .white : .primary)
-                .clipShape(Capsule())
-                .shadow(color: isSelected ? Color.gliderBlue.opacity(0.3) : .clear, radius: 4, x: 0, y: 2)
-        }
-    }
-}
 
 struct MountainRowView: View {
     let mountain: Mountain

@@ -14,6 +14,7 @@ struct MainTabView: View {
     @Environment(\.modelContext) private var modelContext
     @ObservedObject var authViewModel: AuthViewModel
     @StateObject private var mountainsViewModel = MountainsViewModel()
+    @StateObject private var listsViewModel = MountainListsViewModel()
     @State private var showAdminQueue: Bool = false
     @State private var showDonationSheet: Bool = false
     @State private var showMyContributions: Bool = false
@@ -33,15 +34,19 @@ struct MainTabView: View {
                     await mountainsViewModel.synchronize(in: modelContext)
                 }
 
-            
             // Tab 2: Summit Logs
             SummitLogsView()
                 .tabItem {
                     Label("My Climbs", systemImage: "figure.hiking")
                 }
                 .tag(1)
-            
-            // Tab 3: Profile & Admin Utilities
+
+            // Tab 3: My Lists
+            MountainListsView()
+                .tabItem {
+                    Label("My Lists", systemImage: "list.star")
+                }
+                .tag(2)
             NavigationStack {
                 List {
                     Section(header: Text("Mountaineer Profile")) {
@@ -228,11 +233,12 @@ struct MainTabView: View {
             .tabItem {
                 Label("Profile", systemImage: "person.crop.circle.fill")
             }
-            .tag(2)
+            .tag(3)
         }
         .tint(.gliderBlue)
         .environmentObject(authViewModel)
         .environmentObject(mountainsViewModel)
+        .environmentObject(listsViewModel)
         .sheet(isPresented: $showAdminQueue) {
             AdminModerationQueueView()
                 .environmentObject(mountainsViewModel)

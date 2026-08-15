@@ -17,11 +17,16 @@ import GooglePlaces
 struct MountainDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var listsViewModel: MountainListsViewModel
     @ObservedObject private var userPhotoService = UserMountainPhotoService.shared
+    
+    @Query private var lists: [MountainList]
+    
     let mountain: Mountain
     @State private var showingLogModal: Bool = false
     /// Regenerated on every toolbar tap to guarantee a fresh @StateObject in the sheet.
     @State private var logSessionId = UUID()
+    @State private var showSaveToListSheet: Bool = false
     
     @State private var showingMapOptions: Bool = false
     @State private var showingInternalMap: Bool = false
@@ -31,6 +36,11 @@ struct MountainDetailView: View {
     @State private var selectedCoverPhotoItem: PhotosPickerItem?
     @State private var isUploadingCoverPhoto: Bool = false
     @State private var showPhotoUploadSuccessToast: Bool = false
+    @State private var displayIsSaved: Bool = false
+    
+    private var isSaved: Bool {
+        lists.contains(where: { $0.mountainIds.contains(mountain.id) })
+    }
     
     var body: some View {
         ScrollView {
@@ -70,32 +80,48 @@ struct MountainDetailView: View {
                         Spacer()
                         
                         // Bottom Title & Specifications Stack
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(mountain.name)
-                                .font(.system(size: 32, weight: .heavy, design: .rounded))
-                                .foregroundColor(.white)
-                                .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
-                            
-                            VStack(alignment: .leading, spacing: 5) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "triangle.tophalf.filled")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(Color.summitSteel)
-                                    Text("\(mountain.elevationMASL) MASL")
-                                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                                        .foregroundColor(.white)
-                                }
+                        HStack(alignment: .bottom) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(mountain.name)
+                                    .font(.system(size: 32, weight: .heavy, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                                 
-                                HStack(spacing: 6) {
-                                    Image(systemName: "mappin.circle.fill")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(Color.gliderBlue)
-                                    Text(mountain.region)
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(.white.opacity(0.9))
-                                        .lineLimit(1)
+                                VStack(alignment: .leading, spacing: 5) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "triangle.tophalf.filled")
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundColor(Color.summitSteel)
+                                        Text("\(mountain.elevationMASL) MASL")
+                                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                                            .foregroundColor(.white)
+                                    }
+                                    
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "mappin.circle.fill")
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundColor(Color.gliderBlue)
+                                        Text(mountain.region)
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundColor(.white.opacity(0.9))
+                                            .lineLimit(1)
+                                    }
                                 }
                             }
+                            
+                            Spacer()
+                            
+                            Button {
+                                showSaveToListSheet = true
+                            } label: {
+                                Image(systemName: displayIsSaved ? "heart.fill" : "heart")
+                                    .font(.system(size: 28))
+                                    .foregroundColor(displayIsSaved ? .red : .white)
+                                    .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)
+                                    .scaleEffect(displayIsSaved ? 1.15 : 1.0)
+                                    .animation(.spring(response: 0.3, dampingFraction: 0.5, blendDuration: 0), value: displayIsSaved)
+                            }
+                            .padding(.bottom, 4)
                         }
                     }
                     .padding(20)
@@ -226,13 +252,15 @@ struct MountainDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    logSessionId = UUID()
-                    showingLogModal = true
-                } label: {
-                    Text("Add Climb")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
+                HStack(spacing: 4) {
+                    Button {
+                        logSessionId = UUID()
+                        showingLogModal = true
+                    } label: {
+                        Text("Add Climb")
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                    }
                 }
             }
         }
@@ -240,6 +268,10 @@ struct MountainDetailView: View {
             HikeLogCreationView(mountain: mountain)
                 .id(logSessionId)
                 .environmentObject(authViewModel)
+        }
+        .sheet(isPresented: $showSaveToListSheet) {
+            SaveToListSheet(mountainId: mountain.id)
+                .environmentObject(listsViewModel)
         }
         .sheet(isPresented: $showingInternalMap) {
             MountainMapView(mountain: mountain)
@@ -253,6 +285,14 @@ struct MountainDetailView: View {
             if !showingLogModal {
                 // Commit-on-Climb: Evaporate uncommitted staged peak if user navigates away without recording an ascent
                 MountainsViewModel.shared?.discardStagedMountainIfNeeded(mountain)
+            }
+        }
+        .onAppear {
+            displayIsSaved = isSaved
+        }
+        .onChange(of: showSaveToListSheet) { _, isShowing in
+            if !isShowing {
+                displayIsSaved = isSaved
             }
         }
         .confirmationDialog("More Coordinate Options", isPresented: $showingMapOptions, titleVisibility: .visible) {

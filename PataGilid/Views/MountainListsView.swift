@@ -9,8 +9,8 @@ import SwiftUI
 import SwiftData
 
 enum ListSortOrder: String, CaseIterable {
-    case nameAsc = "Name (A-Z)"
-    case nameDesc = "Name (Z-A)"
+    case nameAsc = "Ascending"
+    case nameDesc = "Descending"
 }
 
 /// The "My Lists" hub tab — shows all of the user's personal mountain collections.

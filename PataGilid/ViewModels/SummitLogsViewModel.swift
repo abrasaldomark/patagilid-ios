@@ -201,6 +201,7 @@ class SummitLogsViewModel: ObservableObject {
         
         isLoading = true
         errorMessage = nil
+        hasInitialLoadCompleted = false
         listener?.remove()
         
         listener = Firestore.firestore()

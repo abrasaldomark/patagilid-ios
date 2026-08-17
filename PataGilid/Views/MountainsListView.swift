@@ -153,23 +153,12 @@ struct MountainsListView: View {
                 MountainDetailView(mountain: peak)
             }
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        showAddCustomPeak = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "plus.circle.fill")
-                            Text("Contribute Mountain")
-                        }
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.gliderBlue)
-                    }
-                }
-                
                 // Sorting & Region Filters Menu
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    SearchFilterToolbar(isSearchVisible: $isSearchVisible) {
+                    SearchFilterToolbar(
+                        isSearchVisible: $isSearchVisible,
+                        onAdd: { showAddCustomPeak = true }
+                    ) {
                         SortOrderMenuSection(
                             currentOrder: viewModel.sortOrder,
                             onSelect: { viewModel.sortOrder = $0 }

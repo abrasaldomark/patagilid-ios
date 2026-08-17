@@ -113,16 +113,16 @@ struct SummitLogDetailView: View {
             // Mountain Info Section
             if let mountain {
                 sectionCard(title: "Summit Details") {
-                    detailRow(icon: "mountain.2.fill", iconColor: .gliderBlue,
+                    detailRow(icon: "mountain.2.fill", iconColor: .summitSteel,
                               label: "Mountain", value: mountain.name)
                     Divider().padding(.leading, 40)
                     detailRow(icon: "location.fill", iconColor: .summitSteel,
                               label: "Elevation", value: "\(mountain.elevationMASL) MASL")
                     Divider().padding(.leading, 40)
-                    detailRow(icon: "mappin.circle.fill", iconColor: .red,
+                    detailRow(icon: "mappin.circle.fill", iconColor: .summitSteel,
                               label: "Region", value: mountain.region)
                     Divider().padding(.leading, 40)
-                    detailRow(icon: "globe.asia.australia.fill", iconColor: .blue,
+                    detailRow(icon: "globe.asia.australia.fill", iconColor: .summitSteel,
                               label: "Island Group", value: mountain.islandGroup.rawValue)
                     Divider().padding(.leading, 40)
                     Button {
@@ -131,12 +131,12 @@ struct SummitLogDetailView: View {
                     } label: {
                         HStack(spacing: 4) {
                             let coordsText = (mountain.latitude != nil && mountain.longitude != nil) ? String(format: "%.4f, %.4f", mountain.latitude!, mountain.longitude!) : "Coordinates needed"
-                            detailRow(icon: "location.circle.fill", iconColor: .gliderBlue,
+                            detailRow(icon: "location.circle.fill", iconColor: .summitSteel,
                                       label: "Coordinates", value: coordsText)
                             Image(systemName: "chevron.right")
                                 .font(.caption2)
                                 .fontWeight(.bold)
-                                .foregroundColor(.gliderBlue)
+                                .foregroundColor(.summitSteel)
                         }
                     }
                     .buttonStyle(.plain)
@@ -146,7 +146,7 @@ struct SummitLogDetailView: View {
             // Route & Trail Section
             sectionCard(title: "Route Experienced") {
                 if log.routeType == "Traverse" {
-                    detailRow(icon: "point.bottomleft.forward.to.point.topright.scurvepath", iconColor: .purple,
+                    detailRow(icon: "point.bottomleft.forward.to.point.topright.scurvepath", iconColor: .summitSteel,
                               label: "Climb Style", value: "Traverse Route")
                     Divider().padding(.leading, 40)
                     if !log.trailName.isEmpty {
@@ -155,12 +155,12 @@ struct SummitLogDetailView: View {
                         Divider().padding(.leading, 40)
                     }
                     if !log.exitTrailName.isEmpty {
-                        detailRow(icon: "arrow.up.right.circle.fill", iconColor: .red,
+                        detailRow(icon: "arrow.up.right.circle.fill", iconColor: .summitSteel,
                                   label: "Exit Trail", value: log.exitTrailName)
                         Divider().padding(.leading, 40)
                     }
                 } else if log.routeType == "Circuit" {
-                    detailRow(icon: "arrow.triangle.2.circlepath", iconColor: .orange,
+                    detailRow(icon: "arrow.triangle.2.circlepath", iconColor: .summitSteel,
                               label: "Climb Style", value: "Circuit Route")
                     Divider().padding(.leading, 40)
                     if !log.trailName.isEmpty {
@@ -169,12 +169,12 @@ struct SummitLogDetailView: View {
                         Divider().padding(.leading, 40)
                     }
                     if !log.waypoints.isEmpty {
-                        detailRow(icon: "mappin.and.ellipse", iconColor: .green,
+                        detailRow(icon: "mappin.and.ellipse", iconColor: .summitSteel,
                                   label: "Waypoints", value: log.waypoints.joined(separator: ", "))
                         Divider().padding(.leading, 40)
                     }
                 } else {
-                    detailRow(icon: "point.forward.to.point.capsulepath", iconColor: .blue,
+                    detailRow(icon: "point.forward.to.point.capsulepath", iconColor: .summitSteel,
                               label: "Climb Style", value: "Back Trail (Same Start & Exit)")
                     Divider().padding(.leading, 40)
                     if !log.trailName.isEmpty {
@@ -185,7 +185,7 @@ struct SummitLogDetailView: View {
                 }
                 
                 let trailDiff = log.trailDifficulty.isEmpty ? (mountain?.difficultyLevel ?? "N/A") : log.trailDifficulty
-                detailRow(icon: "gauge.with.dots.needle.bottom.100percent", iconColor: .gliderBlue,
+                detailRow(icon: "gauge.with.dots.needle.bottom.100percent", iconColor: .summitSteel,
                           label: "Experienced Difficulty", value: trailDiff)
                 Divider().padding(.leading, 40)
                 let trailClassVal = log.trailClass.isEmpty ? (mountain?.trailClass ?? "N/A") : log.trailClass
@@ -198,17 +198,18 @@ struct SummitLogDetailView: View {
                 detailRow(icon: "play.circle.fill", iconColor: .summitSteel,
                           label: "Start", value: log.dateTimeStart.formatted(date: .abbreviated, time: .shortened))
                 Divider().padding(.leading, 40)
-                detailRow(icon: "stop.circle.fill", iconColor: .red,
+                detailRow(icon: "stop.circle.fill", iconColor: .summitSteel,
                           label: "End", value: log.dateTimeEnd.formatted(date: .abbreviated, time: .shortened))
                 Divider().padding(.leading, 40)
-                detailRow(icon: "timer", iconColor: .purple,
+                detailRow(icon: "timer", iconColor: .summitSteel,
                           label: "Duration", value: duration(from: log.dateTimeStart, to: log.dateTimeEnd))
                 Divider().padding(.leading, 40)
                 detailRow(
                     icon: log.didSummit ? "checkmark.circle.fill" : "xmark.circle.fill",
-                    iconColor: log.didSummit ? .gliderBlue : .red,
+                    iconColor: .summitSteel,
                     label: "Outcome",
-                    value: log.didSummit ? "Successful Summit" : "Backed Out"
+                    value: log.didSummit ? "Successful Summit" : "Backed Out",
+                    valueColor: log.didSummit ? .primary : .red
                 )
             }
         }
@@ -296,7 +297,7 @@ struct SummitLogDetailView: View {
         }
     }
     
-    private func detailRow(icon: String, iconColor: Color, label: String, value: String) -> some View {
+    private func detailRow(icon: String, iconColor: Color, label: String, value: String, valueColor: Color = .primary) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 16))
@@ -312,7 +313,7 @@ struct SummitLogDetailView: View {
             Text(value)
                 .font(.subheadline)
                 .fontWeight(.semibold)
-                .foregroundColor(.primary)
+                .foregroundColor(valueColor)
                 .multilineTextAlignment(.trailing)
         }
         .padding(.horizontal)

@@ -11,7 +11,9 @@ import SwiftUI
 struct SummitLogsView: View {
     @StateObject private var viewModel = SummitLogsViewModel()
     @EnvironmentObject var mountainsViewModel: MountainsViewModel
+    @Environment(\.modelContext) private var modelContext
     @State private var isSearchVisible: Bool = false
+    @State private var showLoadingUI: Bool = false
     
     var body: some View {
         NavigationStack {
@@ -20,7 +22,9 @@ struct SummitLogsView: View {
                     .ignoresSafeArea()
                 
                 if viewModel.isLoading {
-                    loadingView
+                    if showLoadingUI {
+                        loadingView
+                    }
                 } else if let error = viewModel.errorMessage {
                     errorView(error)
                 } else if viewModel.logs.isEmpty {
@@ -29,8 +33,21 @@ struct SummitLogsView: View {
                     logList
                 }
             }
+            .task(id: viewModel.isLoading) {
+                if viewModel.isLoading {
+                    try? await Task.sleep(nanoseconds: 400_000_000)
+                    if !Task.isCancelled && viewModel.isLoading {
+                        showLoadingUI = true
+                    }
+                } else {
+                    showLoadingUI = false
+                }
+            }
+            .onAppear {
+                viewModel.subscribe(in: modelContext)
+            }
             .navigationTitle("My Summit Logs")
-            .conditionalSearchable(text: $viewModel.searchText, isPresented: $isSearchVisible, prompt: "Search Mountain, Region, or Trail")
+            .searchable(text: $viewModel.searchText, isPresented: $isSearchVisible, prompt: "Search Mountain, Region, or Trail")
             .toolbar {
                 if !viewModel.logs.isEmpty {
                     ToolbarItem(placement: .navigationBarTrailing) {
@@ -198,11 +215,11 @@ struct SummitLogsView: View {
                         .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                     }
                     .onDelete { offsets in
-                        offsets.map { filteredLogs[$0] }.forEach { viewModel.delete($0) }
+                        offsets.map { filteredLogs[$0] }.forEach { viewModel.delete($0, in: modelContext) }
                     }
                 }
                 .listStyle(.plain)
-                .refreshable { viewModel.subscribe() }
+                .refreshable { viewModel.subscribe(in: modelContext) }
             }
         }
     }
@@ -226,19 +243,24 @@ struct SummitLogRow: View {
                     .foregroundColor(.primary)
                     .lineLimit(1)
                 
-                // Elevation · Date on a single line
-                HStack(spacing: 5) {
+                // Elevation and date on a single line below mountain name
+                HStack(spacing: 0) {
                     if let elev = mountain?.elevationMASL {
                         Text("\(elev) MASL")
+                            .font(.caption)
                             .fontWeight(.semibold)
                             .foregroundColor(.summitSteel)
-                        Text("·").foregroundColor(.secondary)
+                        Text("  ·  ")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
-                    Text(log.dateTimeStart, format: .dateTime.day().month(.abbreviated).year())
+                    
+                    Text(formatDateRange(start: log.dateTimeStart, end: log.dateTimeEnd))
+                        .font(.caption)
                         .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
-                .font(.caption)
-                .lineLimit(1)
                 
                 // Region — full width, no truncation
                 if let region = mountain?.region {
@@ -248,47 +270,50 @@ struct SummitLogRow: View {
                         .lineLimit(1)
                 }
                 
-                // Optional Custom Trail / Traverse Route Badge
-                if !log.trailName.isEmpty {
-                    HStack(spacing: 4) {
-                        let isCircuit = log.routeType == "Circuit"
-                        let isTraverse = log.routeType == "Traverse"
-                        let iconName = isCircuit ? "arrow.triangle.2.circlepath" : (isTraverse ? "point.bottomleft.forward.to.point.topright.scurvepath" : "point.forward.to.point.capsulepath")
-                        let color: Color = isCircuit ? .orange : (isTraverse ? .purple : .blue)
-                        
-                        Image(systemName: iconName)
-                            .font(.caption2)
-                        
-                        if isTraverse, !log.exitTrailName.isEmpty {
-                            Text("\(log.trailName) ➔ \(log.exitTrailName) (Traverse)")
+                // Badges Row
+                HStack(spacing: 8) {
+                    // Optional Custom Trail / Traverse Route Badge
+                    if !log.trailName.isEmpty {
+                        HStack(spacing: 4) {
+                            let isCircuit = log.routeType == "Circuit"
+                            let isTraverse = log.routeType == "Traverse"
+                            let iconName = isCircuit ? "arrow.triangle.2.circlepath" : (isTraverse ? "point.bottomleft.forward.to.point.topright.scurvepath" : "point.forward.to.point.capsulepath")
+                            let color: Color = isCircuit ? .orange : (isTraverse ? .purple : .blue)
+                            
+                            Image(systemName: iconName)
                                 .font(.caption2)
-                                .fontWeight(.semibold)
-                                .lineLimit(1)
-                        } else if isTraverse {
-                            Text("\(log.trailName) (Traverse)")
-                                .font(.caption2)
-                                .fontWeight(.semibold)
-                                .lineLimit(1)
-                        } else if isCircuit {
-                            Text("\(log.trailName) (Circuit)")
-                                .font(.caption2)
-                                .fontWeight(.semibold)
-                                .lineLimit(1)
-                        } else {
-                            Text("\(log.trailName) (Back Trail)")
-                                .font(.caption2)
-                                .fontWeight(.semibold)
-                                .lineLimit(1)
+                            
+                            if isTraverse, !log.exitTrailName.isEmpty {
+                                Text("\(log.trailName) ➔ \(log.exitTrailName) (Traverse)")
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                                    .lineLimit(1)
+                            } else if isTraverse {
+                                Text("\(log.trailName) (Traverse)")
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                                    .lineLimit(1)
+                            } else if isCircuit {
+                                Text("\(log.trailName) (Circuit)")
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                                    .lineLimit(1)
+                            } else {
+                                Text("\(log.trailName) (Back Trail)")
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                                    .lineLimit(1)
+                            }
                         }
+                        .foregroundColor(log.routeType == "Circuit" ? .orange : (log.routeType == "Traverse" ? .purple : .blue))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background((log.routeType == "Circuit" ? Color.orange : (log.routeType == "Traverse" ? Color.purple : Color.blue)).opacity(0.1))
+                        .clipShape(Capsule())
                     }
-                    .foregroundColor(log.routeType == "Circuit" ? .orange : (log.routeType == "Traverse" ? .purple : .blue))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background((log.routeType == "Circuit" ? Color.orange : (log.routeType == "Traverse" ? Color.purple : Color.blue)).opacity(0.1))
-                    .clipShape(Capsule())
+                    
+                    outcomeBadge
                 }
-                
-                outcomeBadge
             }
             
             Spacer(minLength: 0)
@@ -324,6 +349,43 @@ struct SummitLogRow: View {
             .padding(.vertical, 3)
             .background(log.didSummit ? Color.gliderBlue.opacity(0.1) : Color.red.opacity(0.08))
             .clipShape(Capsule())
+    }
+    
+    private func formatDateRange(start: Date, end: Date) -> String {
+        let calendar = Calendar.current
+        let formatter = DateFormatter()
+        
+        let startYear = calendar.component(.year, from: start)
+        let endYear = calendar.component(.year, from: end)
+        
+        let startMonth = calendar.component(.month, from: start)
+        let endMonth = calendar.component(.month, from: end)
+        
+        if startYear == endYear {
+            if startMonth == endMonth {
+                let startDay = calendar.component(.day, from: start)
+                let endDay = calendar.component(.day, from: end)
+                if startDay == endDay {
+                    formatter.dateFormat = "MMMM d, yyyy"
+                    return formatter.string(from: start)
+                } else {
+                    formatter.dateFormat = "MMMM d"
+                    let startStr = formatter.string(from: start)
+                    return "\(startStr) to \(endDay), \(startYear)"
+                }
+            } else {
+                formatter.dateFormat = "MMMM d"
+                let startStr = formatter.string(from: start)
+                formatter.dateFormat = "MMMM d, yyyy"
+                let endStr = formatter.string(from: end)
+                return "\(startStr) to \(endStr)"
+            }
+        } else {
+            formatter.dateFormat = "MMMM d, yyyy"
+            let startStr = formatter.string(from: start)
+            let endStr = formatter.string(from: end)
+            return "\(startStr) to \(endStr)"
+        }
     }
 }
 

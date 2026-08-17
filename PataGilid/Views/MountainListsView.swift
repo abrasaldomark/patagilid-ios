@@ -36,12 +36,17 @@ struct MountainListsView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Count Banner
                 CountBanner(
                     filteredCount: filteredLists.count,
                     totalCount: lists.count,
                     noun: "Lists"
                 )
+                
+                // A hidden horizontal ScrollView to absorb the NavigationStack's scroll-tracking heuristic.
+                // This perfectly mimics the behavior of the 'Mountains' tab (which has a real horizontal ScrollView filter bar),
+                // forcing the large navigation title to remain pinned instead of collapsing when the List is scrolled.
+                ScrollView(.horizontal) {}
+                    .frame(width: 0, height: 0)
 
                 if lists.isEmpty {
                     emptyState
@@ -56,12 +61,37 @@ struct MountainListsView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    listContent
+                    VStack(spacing: 0) {
+                        List {
+                            ForEach(filteredLists) { list in
+                                NavigationLink(destination: MountainListDetailView(list: list)) {
+                                    MountainListRow(list: list)
+                                }
+                                .listRowSeparator(.visible)
+                                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        deleteTarget = list
+                                        deleteAlertTitle = "Delete \"\(list.name)\"?"
+                                        showDeleteAlert = true
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                    Button {
+                                        editTarget = list
+                                    } label: {
+                                        Label("Rename", systemImage: "pencil")
+                                    }
+                                    .tint(.gliderBlue)
+                                }
+                            }
+                        }
+                        .listStyle(.plain)
+                    }
                 }
             }
             .conditionalSearchable(text: $searchText, isPresented: $isSearchVisible, prompt: "Search Lists")
             .navigationTitle("My Lists")
-            .navigationBarTitleDisplayMode(.large)
             .toolbar { toolbarContent }
             .task {
                 await listsViewModel.sync(in: modelContext)
@@ -125,38 +155,6 @@ struct MountainListsView: View {
         }
     }
 
-    // MARK: - List Content
-
-    private var listContent: some View {
-        List {
-            ForEach(filteredLists) { list in
-                NavigationLink(destination: MountainListDetailView(list: list)) {
-                    MountainListRow(list: list)
-                }
-                .listRowSeparator(.visible)
-                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        deleteTarget = list
-                        deleteAlertTitle = "Delete \"\(list.name)\"?"
-                        showDeleteAlert = true
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                    Button {
-                        editTarget = list
-                    } label: {
-                        Label("Rename", systemImage: "pencil")
-                    }
-                    .tint(.gliderBlue)
-                }
-            }
-        }
-        .listStyle(.plain)
-        .refreshable {
-            await listsViewModel.sync(in: modelContext)
-        }
-    }
 
     // MARK: - Empty State
 

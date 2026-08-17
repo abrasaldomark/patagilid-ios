@@ -129,10 +129,20 @@ struct CountBanner: View {
 /// The magnifying glass + filter menu toolbar group shared by Mountains and My Climbs.
 struct SearchFilterToolbar<MenuContent: View>: View {
     @Binding var isSearchVisible: Bool
+    var onAdd: (() -> Void)? = nil
     @ViewBuilder var menuContent: () -> MenuContent
     
     var body: some View {
         HStack(spacing: 12) {
+            if let onAdd {
+                Button {
+                    onAdd()
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
+                        .foregroundColor(.gliderBlue)
+                }
+            }
             Button {
                 isSearchVisible = true
             } label: {

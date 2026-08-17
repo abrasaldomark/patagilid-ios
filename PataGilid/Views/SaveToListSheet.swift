@@ -68,10 +68,10 @@ struct SaveToListSheet: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(list.name)
                             .font(.headline)
-                            .foregroundColor(.primary)
+                            .foregroundStyle(Color(uiColor: .label))
                         Text(list.mountainCount == 1 ? "1 mountain" : "\(list.mountainCount) mountains")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(Color.secondary)
                     }
 
                     Spacer()

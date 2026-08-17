@@ -84,6 +84,7 @@ struct MountainDetailView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(mountain.name)
                                     .font(.system(size: 32, weight: .heavy, design: .rounded))
+                                    .lineSpacing(4)
                                     .foregroundColor(.white)
                                     .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                                 
@@ -257,9 +258,9 @@ struct MountainDetailView: View {
                         logSessionId = UUID()
                         showingLogModal = true
                     } label: {
-                        Text("Add Climb")
-                            .font(.subheadline)
-                            .fontWeight(.bold)
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundColor(.gliderBlue)
                     }
                 }
             }

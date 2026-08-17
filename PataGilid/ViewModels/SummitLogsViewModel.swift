@@ -9,6 +9,7 @@ import SwiftUI
 import Combine
 import FirebaseAuth
 import FirebaseFirestore
+import SwiftData
 
 enum LogSortOrder: String, CaseIterable {
     case mostRecent = "Most Recent"
@@ -44,7 +45,6 @@ class SummitLogsViewModel: ObservableObject {
     
     init() {
         buildMountainMap()
-        subscribe()
     }
     
     deinit {
@@ -180,11 +180,22 @@ class SummitLogsViewModel: ObservableObject {
     
     // MARK: - Firestore Listener
     
-    func subscribe() {
+    func subscribe(in modelContext: ModelContext) {
         guard let user = Auth.auth().currentUser else {
             isLoading = false
             errorMessage = "Sign in to view your summit logs."
             return
+        }
+        
+        let uid = user.uid
+        
+        // Instant load from SwiftData
+        let descriptor = FetchDescriptor<HikeLog>(
+            predicate: #Predicate { $0.userId == uid },
+            sortBy: [SortDescriptor(\.dateTimeStart, order: .reverse)]
+        )
+        if let cachedLogs = try? modelContext.fetch(descriptor) {
+            logs = cachedLogs
         }
         
         isLoading = true
@@ -212,9 +223,19 @@ class SummitLogsViewModel: ObservableObject {
                     }
                     return
                 }
+                
                 let fetchedLogs: [HikeLog] = snapshot?.documents.compactMap {
                     try? $0.data(as: HikeLog.self)
                 } ?? []
+                
+                // Sync with SwiftData
+                // First delete existing logs for this user to avoid staleness
+                try? modelContext.delete(model: HikeLog.self, where: #Predicate { $0.userId == uid })
+                for log in fetchedLogs {
+                    modelContext.insert(log)
+                }
+                try? modelContext.save()
+                
                 logs = fetchedLogs
                 
                 // Simultaneously sync & preserve hiker's personal climbing legacy to their Google Drive!
@@ -228,8 +249,9 @@ class SummitLogsViewModel: ObservableObject {
     
     // MARK: - Deletion
     
-    func delete(_ log: HikeLog) {
-        guard let user = Auth.auth().currentUser, let logId = log.id else { return }
+    func delete(_ log: HikeLog, in modelContext: ModelContext) {
+        guard let user = Auth.auth().currentUser else { return }
+        let logId = log.id
         if !log.photoUrls.isEmpty {
             Task {
                 print("🗑️ Removing \(log.photoUrls.count) photos from Google Drive for deleted summit log...")
@@ -240,5 +262,7 @@ class SummitLogsViewModel: ObservableObject {
             .collection("users").document(user.uid)
             .collection("hikeLogs").document(logId)
             .delete()
+        modelContext.delete(log)
+        try? modelContext.save()
     }
 }

@@ -34,23 +34,13 @@ class MountainListService: ObservableObject {
         guard let uid = currentUserId else { return }
         do {
             let snapshot = try await listsCollection(for: uid).getDocuments()
+            
+            // Delete all existing lists for the user and re-insert to ensure perfect sync
+            try? modelContext.delete(model: MountainList.self, where: #Predicate { $0.userId == uid })
+            
             for doc in snapshot.documents {
                 guard let remote = MountainList.from(document: doc) else { continue }
-                // Check for an existing local copy
-                let remoteId = remote.id
-                var descriptor = FetchDescriptor<MountainList>(
-                    predicate: #Predicate<MountainList> { $0.id == remoteId }
-                )
-                descriptor.fetchLimit = 1
-
-                if let existing = try? modelContext.fetch(descriptor).first {
-                    existing.name        = remote.name
-                    existing.emoji       = remote.emoji
-                    existing.mountainIds = remote.mountainIds
-                    existing.updatedAt   = remote.updatedAt
-                } else {
-                    modelContext.insert(remote)
-                }
+                modelContext.insert(remote)
             }
             try? modelContext.save()
             print("✅ [MountainListService] Synced \(snapshot.documents.count) lists from Firestore.")

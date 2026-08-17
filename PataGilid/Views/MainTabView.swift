@@ -19,7 +19,7 @@ struct MainTabView: View {
     @State private var showDonationSheet: Bool = false
     @State private var showMyContributions: Bool = false
     @State private var showSponsors: Bool = false
-    @State private var selectedTab: Int = 0
+    @AppStorage("selectedMainTab") private var selectedTab: Int = 0
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = true
     
     var body: some View {

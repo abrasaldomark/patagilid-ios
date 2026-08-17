@@ -23,6 +23,8 @@ struct MountainListDetailView: View {
 
     @State private var removeTarget: Mountain? = nil
     @State private var isSearchVisible: Bool = false
+    @AppStorage("selectedMainTab") private var selectedTab: Int = 0
+    @Environment(\.dismiss) private var dismiss
     @State private var searchText: String = ""
     @State private var selectedIslandGroup: IslandGroup? = nil
     @State private var selectedRegion: String? = nil
@@ -120,7 +122,7 @@ struct MountainListDetailView: View {
                 mountainList
             }
         }
-        .conditionalSearchable(text: $searchText, isPresented: $isSearchVisible, prompt: "Search by Name or Region")
+        .searchable(text: $searchText, isPresented: $isSearchVisible, prompt: "Search by Name or Region")
         .navigationTitle(list.displayTitle)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
@@ -206,10 +208,24 @@ struct MountainListDetailView: View {
             Text("This List is Empty")
                 .font(.title2)
                 .fontWeight(.bold)
-            Text("Open a mountain's detail page and\ntap \"Save to List\" to add it here.")
+            Text("Open a mountain's detail page and\ntap the Heart icon to add it here.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
+            
+            Button {
+                selectedTab = 0
+                dismiss()
+            } label: {
+                Text("Browse Mountains")
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(Color.gliderBlue)
+                    .clipShape(Capsule())
+            }
+            .padding(.top, 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()

@@ -335,7 +335,8 @@ class HikeLogViewModel: ObservableObject {
     
     /// Permanently removes a recorded climb log from Firestore and cleans up its attached Google Drive photos.
     func deleteLog(_ log: HikeLog, completion: @escaping () -> Void = {}) {
-        guard let user = Auth.auth().currentUser, let docId = log.id else { return }
+        guard let user = Auth.auth().currentUser else { return }
+        let docId = log.id
         isSaving = true
         if !log.photoUrls.isEmpty {
             Task {

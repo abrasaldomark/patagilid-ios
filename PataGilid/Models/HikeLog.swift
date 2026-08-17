@@ -6,11 +6,13 @@
 //
 
 import Foundation
+import SwiftData
 import FirebaseFirestore
 
 /// Represents a user's climbing attempt stored in Firestore under `users/{userId}/hikeLogs/{logId}`.
-struct HikeLog: Codable, Identifiable {
-    @DocumentID var id: String?
+@Model
+final class HikeLog: Codable, Identifiable {
+    @Attribute(.unique) var id: String
     
     /// Unique identifier of the authenticated user (via Google Sign-In / Firebase Auth).
     var userId: String
@@ -65,10 +67,11 @@ struct HikeLog: Codable, Identifiable {
     
     // MARK: - Explicit Memberwise Init
     
-    init(userId: String, mountainId: String, dateTimeStart: Date, dateTimeEnd: Date,
+    init(id: String = UUID().uuidString, userId: String, mountainId: String, dateTimeStart: Date, dateTimeEnd: Date,
          didSummit: Bool, photoUrls: [String],
          trailName: String = "", routeType: String = "", exitTrailName: String = "",
          trailDifficulty: String = "", trailClass: String = "", waypoints: [String] = []) {
+        self.id = id
         self.userId = userId
         self.mountainId = mountainId
         self.dateTimeStart = dateTimeStart
@@ -81,5 +84,57 @@ struct HikeLog: Codable, Identifiable {
         self.trailDifficulty = trailDifficulty
         self.trailClass = trailClass
         self.waypoints = waypoints
+    }
+    
+    // MARK: - Codable
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId
+        case mountainId
+        case dateTimeStart
+        case dateTimeEnd
+        case didSummit
+        case photoUrls
+        case trailName
+        case routeType
+        case exitTrailName
+        case trailDifficulty
+        case trailClass
+        case waypoints
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        userId = try container.decode(String.self, forKey: .userId)
+        mountainId = try container.decode(String.self, forKey: .mountainId)
+        dateTimeStart = try container.decode(Date.self, forKey: .dateTimeStart)
+        dateTimeEnd = try container.decode(Date.self, forKey: .dateTimeEnd)
+        didSummit = try container.decode(Bool.self, forKey: .didSummit)
+        photoUrls = try container.decodeIfPresent([String].self, forKey: .photoUrls) ?? []
+        trailName = try container.decodeIfPresent(String.self, forKey: .trailName) ?? ""
+        routeType = try container.decodeIfPresent(String.self, forKey: .routeType) ?? ""
+        exitTrailName = try container.decodeIfPresent(String.self, forKey: .exitTrailName) ?? ""
+        trailDifficulty = try container.decodeIfPresent(String.self, forKey: .trailDifficulty) ?? ""
+        trailClass = try container.decodeIfPresent(String.self, forKey: .trailClass) ?? ""
+        waypoints = try container.decodeIfPresent([String].self, forKey: .waypoints) ?? []
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(userId, forKey: .userId)
+        try container.encode(mountainId, forKey: .mountainId)
+        try container.encode(dateTimeStart, forKey: .dateTimeStart)
+        try container.encode(dateTimeEnd, forKey: .dateTimeEnd)
+        try container.encode(didSummit, forKey: .didSummit)
+        try container.encode(photoUrls, forKey: .photoUrls)
+        try container.encode(trailName, forKey: .trailName)
+        try container.encode(routeType, forKey: .routeType)
+        try container.encode(exitTrailName, forKey: .exitTrailName)
+        try container.encode(trailDifficulty, forKey: .trailDifficulty)
+        try container.encode(trailClass, forKey: .trailClass)
+        try container.encode(waypoints, forKey: .waypoints)
     }
 }

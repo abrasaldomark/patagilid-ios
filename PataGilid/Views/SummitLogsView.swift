@@ -17,21 +17,21 @@ struct SummitLogsView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                Color(uiColor: .systemGroupedBackground)
-                    .ignoresSafeArea()
-                
-                if viewModel.isLoading {
-                    if showLoadingUI {
-                        loadingView
+            VStack(spacing: 0) {
+                Group {
+                    if viewModel.isLoading {
+                        if showLoadingUI {
+                            loadingView
+                        }
+                    } else if let error = viewModel.errorMessage {
+                        errorView(error)
+                    } else if viewModel.logs.isEmpty {
+                        emptyView
+                    } else {
+                        logList
                     }
-                } else if let error = viewModel.errorMessage {
-                    errorView(error)
-                } else if viewModel.logs.isEmpty {
-                    emptyView
-                } else {
-                    logList
                 }
+                .conditionalSearchable(text: $viewModel.searchText, isPresented: $isSearchVisible, prompt: "Search Mountain, Region, or Trail")
             }
             .task(id: viewModel.isLoading) {
                 if viewModel.isLoading {
@@ -46,8 +46,7 @@ struct SummitLogsView: View {
             .onAppear {
                 viewModel.subscribe(in: modelContext)
             }
-            .navigationTitle("My Summit Logs")
-            .searchable(text: $viewModel.searchText, isPresented: $isSearchVisible, prompt: "Search Mountain, Region, or Trail")
+            .navigationTitle("Climbs")
             .toolbar {
                 if !viewModel.logs.isEmpty {
                     ToolbarItem(placement: .navigationBarTrailing) {
@@ -219,7 +218,6 @@ struct SummitLogsView: View {
                     }
                 }
                 .listStyle(.plain)
-                .refreshable { viewModel.subscribe(in: modelContext) }
             }
         }
     }

@@ -42,6 +42,7 @@ class SummitLogsViewModel: ObservableObject {
     /// O(1) mountain lookup map built from the bundled JSON catalog.
     private(set) var mountainMap: [String: Mountain] = [:]
     private var listener: ListenerRegistration?
+    private var hasInitialLoadCompleted = false
     
     init() {
         buildMountainMap()
@@ -238,8 +239,12 @@ class SummitLogsViewModel: ObservableObject {
                 
                 logs = fetchedLogs
                 
+                let isInitialLoad = !self.hasInitialLoadCompleted
+                self.hasInitialLoadCompleted = true
+                
                 // Simultaneously sync & preserve hiker's personal climbing legacy to their Google Drive!
-                if !fetchedLogs.isEmpty {
+                // We skip the initial load to avoid uploading untouched data every time the tab opens.
+                if !isInitialLoad, !fetchedLogs.isEmpty {
                     Task {
                         try? await GoogleDriveService.shared.saveSummitLogs(fetchedLogs)
                     }

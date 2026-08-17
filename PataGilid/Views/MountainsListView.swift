@@ -89,65 +89,67 @@ struct MountainsListView: View {
                 }
                 
                 // Mountain List, Skeleton Loader & Empty Search State
-                if (viewModel.isLoading || viewModel.isDownloading) && viewModel.filteredAndSortedPeaks.isEmpty {
-                    List {
-                        ForEach(0..<8, id: \.self) { _ in
-                            SkeletonMountainCardView()
+                Group {
+                    if (viewModel.isLoading || viewModel.isDownloading) && viewModel.filteredAndSortedPeaks.isEmpty {
+                        List {
+                            ForEach(0..<8, id: \.self) { _ in
+                                SkeletonMountainCardView()
+                                    .listRowSeparator(.visible)
+                                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                                    .allowsHitTesting(false)
+                            }
+                        }
+                        .listStyle(.plain)
+                    } else if viewModel.filteredAndSortedPeaks.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "mountain.2.fill")
+                                .font(.system(size: 56))
+                                .foregroundColor(.secondary.opacity(0.4))
+                            Text(viewModel.searchText.isEmpty ? "No mountains found" : "No mountains matched '\(viewModel.searchText)'")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            Text("Can't find the local mountain or trail you climbed? Contribute it directly to PataGilid!")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 40)
+                            
+                            Button {
+                                showAddCustomPeak = true
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "plus.circle.fill")
+                                    Text("Contribute Missing Mountain")
+                                }
+                                .font(.subheadline)
+                                .fontWeight(.bold)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
+                                .background(Color.gliderBlue)
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                                .shadow(color: Color.gliderBlue.opacity(0.3), radius: 6, x: 0, y: 3)
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.top, 4)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color(.systemGroupedBackground))
+                    } else {
+                        List {
+                            ForEach(viewModel.filteredAndSortedPeaks) { mountain in
+                                NavigationLink(destination: MountainDetailView(mountain: mountain)) {
+                                    MountainRowView(mountain: mountain)
+                                }
                                 .listRowSeparator(.visible)
                                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                                .allowsHitTesting(false)
-                        }
-                    }
-                    .listStyle(.plain)
-                } else if viewModel.filteredAndSortedPeaks.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "mountain.2.fill")
-                            .font(.system(size: 56))
-                            .foregroundColor(.secondary.opacity(0.4))
-                        Text(viewModel.searchText.isEmpty ? "No mountains found" : "No mountains matched '\(viewModel.searchText)'")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        Text("Can't find the local mountain or trail you climbed? Contribute it directly to PataGilid!")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
-                        
-                        Button {
-                            showAddCustomPeak = true
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "plus.circle.fill")
-                                Text("Contribute Missing Mountain")
                             }
-                            .font(.subheadline)
-                            .fontWeight(.bold)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
-                            .background(Color.gliderBlue)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
-                            .shadow(color: Color.gliderBlue.opacity(0.3), radius: 6, x: 0, y: 3)
                         }
-                        .buttonStyle(.plain)
-                        .padding(.top, 4)
+                        .listStyle(.plain)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(.systemGroupedBackground))
-                } else {
-                    List {
-                        ForEach(viewModel.filteredAndSortedPeaks) { mountain in
-                            NavigationLink(destination: MountainDetailView(mountain: mountain)) {
-                                MountainRowView(mountain: mountain)
-                            }
-                            .listRowSeparator(.visible)
-                            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                        }
-                    }
-                    .listStyle(.plain)
                 }
+                .conditionalSearchable(text: $viewModel.searchText, isPresented: $isSearchVisible, prompt: "Search Mountain, Region, or Trail")
             }
-            .conditionalSearchable(text: $viewModel.searchText, isPresented: $isSearchVisible, prompt: "Search by Name, Region (e.g. Region 6), or Details")
             .navigationTitle("Philippine Mountains")
             .navigationDestination(item: $selectedNewPeak) { peak in
                 MountainDetailView(mountain: peak)

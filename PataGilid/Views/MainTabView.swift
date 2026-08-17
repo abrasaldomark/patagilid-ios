@@ -37,14 +37,14 @@ struct MainTabView: View {
             // Tab 2: Summit Logs
             SummitLogsView()
                 .tabItem {
-                    Label("My Climbs", systemImage: "figure.hiking")
+                    Label("Climbs", systemImage: "figure.hiking")
                 }
                 .tag(1)
 
             // Tab 3: My Lists
             MountainListsView()
                 .tabItem {
-                    Label("My Lists", systemImage: "list.star")
+                    Label("Lists", systemImage: "list.star")
                 }
                 .tag(2)
             NavigationStack {

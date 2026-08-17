@@ -13,8 +13,6 @@ import SwiftData
 struct MountainListDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var listsViewModel: MountainListsViewModel
-    @EnvironmentObject private var mountainsViewModel: MountainsViewModel
-
     /// The list being displayed. Observed directly from SwiftData so UI stays reactive.
     @Bindable var list: MountainList
 
@@ -30,7 +28,6 @@ struct MountainListDetailView: View {
     @State private var selectedRegion: String? = nil
     @State private var sortOrder: PeakSortOrder = .highestFirst
 
-    /// Mountains in this list, resolved from local SwiftData cache in list order.
     private var listMountains: [Mountain] {
         list.mountainIds.compactMap { id in
             allMountains.first { $0.id == id }
@@ -100,29 +97,31 @@ struct MountainListDetailView: View {
                 noun: "Mountains"
             )
 
-            if listMountains.isEmpty {
-                emptyState
-            } else if filteredMountains.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: "doc.text.magnifyingglass")
-                        .font(.system(size: 52))
-                        .foregroundColor(.secondary.opacity(0.4))
-                    Text(searchText.isEmpty ? "No mountains match active filters" : "No mountains matched '\(searchText)'")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                    Button("Reset Filters") {
-                        resetFilters()
+            Group {
+                if listMountains.isEmpty {
+                    emptyState
+                } else if filteredMountains.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "doc.text.magnifyingglass")
+                            .font(.system(size: 52))
+                            .foregroundColor(.secondary.opacity(0.4))
+                        Text(searchText.isEmpty ? "No mountains match active filters" : "No mountains matched '\(searchText)'")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Button("Reset Filters") {
+                            resetFilters()
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.gliderBlue)
                     }
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.gliderBlue)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    mountainList
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                mountainList
             }
+            .conditionalSearchable(text: $searchText, isPresented: $isSearchVisible, prompt: "Search by Name or Region")
         }
-        .searchable(text: $searchText, isPresented: $isSearchVisible, prompt: "Search by Name or Region")
         .navigationTitle(list.displayTitle)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
@@ -203,8 +202,7 @@ struct MountainListDetailView: View {
 
     private var emptyState: some View {
         VStack(spacing: 14) {
-            Text("🗺️")
-                .font(.system(size: 56))
+
             Text("This List is Empty")
                 .font(.title2)
                 .fontWeight(.bold)

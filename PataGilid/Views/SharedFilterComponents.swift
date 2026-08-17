@@ -141,6 +141,7 @@ struct SearchFilterToolbar<MenuContent: View>: View {
                     Image(systemName: "plus.circle.fill")
                         .font(.title3)
                         .foregroundColor(.gliderBlue)
+                        .shadow(color: Color.gliderBlue.opacity(0.3), radius: 2, x: 0, y: 1)
                 }
             }
             Button {
@@ -149,6 +150,7 @@ struct SearchFilterToolbar<MenuContent: View>: View {
                 Image(systemName: "magnifyingglass.circle.fill")
                     .font(.title3)
                     .foregroundColor(.gliderBlue)
+                    .shadow(color: Color.gliderBlue.opacity(0.3), radius: 2, x: 0, y: 1)
             }
             
             Menu {
@@ -157,6 +159,7 @@ struct SearchFilterToolbar<MenuContent: View>: View {
                 Image(systemName: "line.3.horizontal.decrease.circle.fill")
                     .font(.title3)
                     .foregroundColor(.gliderBlue)
+                    .shadow(color: Color.gliderBlue.opacity(0.3), radius: 2, x: 0, y: 1)
             }
         }
     }

@@ -9,13 +9,23 @@ import SwiftUI
 import SwiftData
 
 enum ListSortOrder: String, CaseIterable {
-    case newest = "Recently Updated"
     case nameAsc = "Name (A-Z)"
     case nameDesc = "Name (Z-A)"
 }
 
 /// The "My Lists" hub tab — shows all of the user's personal mountain collections.
 struct MountainListsView: View {
+    var body: some View {
+        NavigationStack {
+            MountainListsContent()
+                .navigationTitle("Lists")
+        }
+    }
+}
+
+// MARK: - Mountain Lists Content
+
+struct MountainListsContent: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var listsViewModel: MountainListsViewModel
 
@@ -30,7 +40,7 @@ struct MountainListsView: View {
     @State private var deleteAlertTitle = ""
     @State private var isSearchVisible: Bool = false
     @State private var searchText: String = ""
-    @State private var sortOrder: ListSortOrder = .newest
+    @State private var sortOrder: ListSortOrder = .nameAsc
 
     private var filteredLists: [MountainList] {
         var result = lists
@@ -40,8 +50,6 @@ struct MountainListsView: View {
         }
         
         switch sortOrder {
-        case .newest:
-            return result
         case .nameAsc:
             return result.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         case .nameDesc:
@@ -50,22 +58,25 @@ struct MountainListsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
+            // Wrap CountBanner in a real ScrollView to act as a stable layout anchor for the NavigationTitle.
+            // Because it has a real size (>0), it does NOT cause the geometry calculation delay that the 0x0 hack caused!
+            // Because it is a ScrollView, it prevents the NavigationTitle from disappearing when conditionalSearchable fires!
+            ScrollView(.horizontal, showsIndicators: false) {
                 CountBanner(
                     filteredCount: filteredLists.count,
                     totalCount: lists.count,
                     noun: "Lists"
                 )
-                
-                // A hidden horizontal ScrollView to absorb the NavigationStack's scroll-tracking heuristic.
-                // This perfectly mimics the behavior of the 'Mountains' tab (which has a real horizontal ScrollView filter bar),
-                // forcing the large navigation title to remain pinned instead of collapsing when the List is scrolled.
-                ScrollView(.horizontal) {}
-                    .frame(width: 0, height: 0)
+                .containerRelativeFrame(.horizontal)
+            }
+            .scrollDisabled(true)
 
+            List {
                 if lists.isEmpty {
                     emptyState
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                 } else if filteredLists.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "doc.text.magnifyingglass")
@@ -75,98 +86,87 @@ struct MountainListsView: View {
                             .font(.headline)
                             .foregroundColor(.secondary)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: 300, alignment: .center)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
                 } else {
-                    VStack(spacing: 0) {
-                        List {
-                            ForEach(filteredLists) { list in
-                                NavigationLink(destination: MountainListDetailView(list: list)) {
-                                    MountainListRow(list: list)
-                                }
-                                .listRowSeparator(.visible)
-                                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button(role: .destructive) {
-                                        deleteTarget = list
-                                        deleteAlertTitle = "Delete \"\(list.name)\"?"
-                                        showDeleteAlert = true
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                    Button {
-                                        editTarget = list
-                                    } label: {
-                                        Label("Rename", systemImage: "pencil")
-                                    }
-                                    .tint(.gliderBlue)
-                                }
-                            }
+                    ForEach(filteredLists) { list in
+                        NavigationLink(value: list) {
+                            MountainListRow(list: list)
                         }
-                        .listStyle(.plain)
+                        .listRowSeparator(.visible)
+                        .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                deleteTarget = list
+                                deleteAlertTitle = "Delete \"\(list.name)\"?"
+                                showDeleteAlert = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                            Button {
+                                editTarget = list
+                            } label: {
+                                Label("Rename", systemImage: "pencil")
+                            }
+                            .tint(.gliderBlue)
+                        }
                     }
                 }
             }
+            .listStyle(.plain)
             .conditionalSearchable(text: $searchText, isPresented: $isSearchVisible, prompt: "Search Lists")
-            .navigationTitle("My Lists")
-            .toolbar { toolbarContent }
-            .task {
-                await listsViewModel.sync(in: modelContext)
-            }
-            .sheet(isPresented: $showCreateSheet) {
-                ListNameSheet(title: "New List", initialName: "", initialEmoji: "🏔️") { name, emoji in
-                    Task { await listsViewModel.createList(name: name, emoji: emoji, in: modelContext) }
-                }
-            }
-            .sheet(item: $editTarget) { target in
-                ListNameSheet(title: "Rename List", initialName: target.name, initialEmoji: target.emoji) { name, emoji in
-                    Task { await listsViewModel.renameList(target, newName: name, newEmoji: emoji, in: modelContext) }
-                }
-            }
-            .alert(deleteAlertTitle, isPresented: $showDeleteAlert) {
-                Button("Delete", role: .destructive) {
-                    if let target = deleteTarget {
-                        Task { await listsViewModel.deleteList(target, in: modelContext) }
-                    }
-                    deleteTarget = nil
-                }
-                Button("Cancel", role: .cancel) { deleteTarget = nil }
-            } message: {
-                Text("This will permanently remove the list and all its saved mountains. Your climb logs are unaffected.")
-            }
-            .alert("Error", isPresented: $showErrorAlert) {
-                Button("OK", role: .cancel) { listsViewModel.clearError() }
-            } message: {
-                Text(listsViewModel.errorMessage ?? "")
-            }
-            .onChange(of: listsViewModel.errorMessage) { _, newValue in
-                showErrorAlert = newValue != nil
+        }
+        .navigationDestination(for: MountainList.self) { list in
+            MountainListDetailView(list: list)
+        }
+        .toolbar { toolbarContent }
+        .task {
+            try? await Task.sleep(nanoseconds: 300_000_000) // Let the navigation transition finish
+            await listsViewModel.sync(in: modelContext)
+        }
+        .sheet(isPresented: $showCreateSheet) {
+            ListNameSheet(title: "New List", initialName: "", initialEmoji: "🏔️") { name, emoji in
+                Task { await listsViewModel.createList(name: name, emoji: emoji, in: modelContext) }
             }
         }
+        .sheet(item: $editTarget) { target in
+            ListNameSheet(title: "Rename List", initialName: target.name, initialEmoji: target.emoji) { name, emoji in
+                Task { await listsViewModel.renameList(target, newName: name, newEmoji: emoji, in: modelContext) }
+            }
+        }
+        .alert(deleteAlertTitle, isPresented: $showDeleteAlert) {
+            Button("Delete", role: .destructive) {
+                if let target = deleteTarget {
+                    Task { await listsViewModel.deleteList(target, in: modelContext) }
+                }
+                deleteTarget = nil
+            }
+            Button("Cancel", role: .cancel) { deleteTarget = nil }
+        } message: {
+            Text("This will permanently remove the list and all its saved mountains. Your climb logs are unaffected.")
+        }
+        .alert("Error", isPresented: $showErrorAlert) {
+            Button("OK", role: .cancel) { listsViewModel.clearError() }
+        } message: {
+            Text(listsViewModel.errorMessage ?? "")
+        }
+        .onChange(of: listsViewModel.errorMessage) { _, newValue in
+            showErrorAlert = newValue != nil
+        }
     }
-
-    // MARK: - Toolbar
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
-            if !lists.isEmpty {
-                SearchFilterToolbar(
-                    isSearchVisible: $isSearchVisible,
-                    onAdd: { showCreateSheet = true }
-                ) {
-                    SortOrderMenuSection(
-                        currentOrder: sortOrder,
-                        onSelect: { sortOrder = $0 }
-                    )
-                }
-            } else {
-                Button {
-                    showCreateSheet = true
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title3)
-                        .foregroundColor(.gliderBlue)
-                }
+            SearchFilterToolbar(
+                isSearchVisible: $isSearchVisible,
+                onAdd: { showCreateSheet = true }
+            ) {
+                SortOrderMenuSection(
+                    currentOrder: sortOrder,
+                    onSelect: { sortOrder = $0 }
+                )
             }
         }
     }
@@ -176,8 +176,7 @@ struct MountainListsView: View {
 
     private var emptyState: some View {
         VStack(spacing: 14) {
-            Text("🏔️")
-                .font(.system(size: 60))
+
             Text("No Lists Yet")
                 .font(.title2)
                 .fontWeight(.bold)
@@ -186,7 +185,7 @@ struct MountainListsView: View {
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, minHeight: 300, alignment: .center)
         .padding()
     }
 }
@@ -218,10 +217,13 @@ struct MountainListRow: View {
                     .fontWeight(.medium)
                     .foregroundColor(.secondary)
             }
+            .alignmentGuide(.listRowSeparatorLeading) { d in
+                d[.leading]
+            }
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 4) {
+            VStack(spacing: 2) {
                 Text("\(list.mountainCount)")
                     .font(.system(size: 17, weight: .heavy, design: .rounded))
                     .foregroundColor(.primary)
@@ -249,6 +251,7 @@ struct ListNameSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var name: String = ""
     @State private var emoji: String = "🏔️"
+    @FocusState private var isNameFocused: Bool
 
     private let quickEmojis = ["🏔️", "⛰️", "🌋", "🗻", "🌿", "🧭", "🎒", "🥾", "🏕️", "📍", "⭐", "❤️"]
 
@@ -268,6 +271,7 @@ struct ListNameSheet: View {
 
                 Section("Name") {
                     TextField("e.g. Luzon Trip 2026", text: $name)
+                        .focused($isNameFocused)
                         .autocorrectionDisabled(false)
                         .textInputAutocapitalization(.words)
                 }
@@ -291,6 +295,9 @@ struct ListNameSheet: View {
         .onAppear {
             name = initialName
             emoji = initialEmoji
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isNameFocused = true
+            }
         }
     }
 

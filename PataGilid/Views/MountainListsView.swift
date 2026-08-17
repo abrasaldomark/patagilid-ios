@@ -8,6 +8,12 @@
 import SwiftUI
 import SwiftData
 
+enum ListSortOrder: String, CaseIterable {
+    case newest = "Recently Updated"
+    case nameAsc = "Name (A-Z)"
+    case nameDesc = "Name (Z-A)"
+}
+
 /// The "My Lists" hub tab — shows all of the user's personal mountain collections.
 struct MountainListsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -24,13 +30,23 @@ struct MountainListsView: View {
     @State private var deleteAlertTitle = ""
     @State private var isSearchVisible: Bool = false
     @State private var searchText: String = ""
+    @State private var sortOrder: ListSortOrder = .newest
 
     private var filteredLists: [MountainList] {
-        if searchText.trimmingCharacters(in: .whitespaces).isEmpty {
-            return lists
+        var result = lists
+        if !searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+            let query = searchText.lowercased()
+            result = result.filter { $0.name.lowercased().contains(query) }
         }
-        let query = searchText.lowercased()
-        return lists.filter { $0.name.lowercased().contains(query) }
+        
+        switch sortOrder {
+        case .newest:
+            return result
+        case .nameAsc:
+            return result.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        case .nameDesc:
+            return result.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedDescending }
+        }
     }
 
     var body: some View {
@@ -133,23 +149,23 @@ struct MountainListsView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
-            HStack(spacing: 12) {
+            if !lists.isEmpty {
+                SearchFilterToolbar(
+                    isSearchVisible: $isSearchVisible,
+                    onAdd: { showCreateSheet = true }
+                ) {
+                    SortOrderMenuSection(
+                        currentOrder: sortOrder,
+                        onSelect: { sortOrder = $0 }
+                    )
+                }
+            } else {
                 Button {
                     showCreateSheet = true
                 } label: {
                     Image(systemName: "plus.circle.fill")
                         .font(.title3)
                         .foregroundColor(.gliderBlue)
-                }
-
-                if !lists.isEmpty {
-                    Button {
-                        isSearchVisible = true
-                    } label: {
-                        Image(systemName: "magnifyingglass.circle.fill")
-                            .font(.title3)
-                            .foregroundColor(.gliderBlue)
-                    }
                 }
             }
         }

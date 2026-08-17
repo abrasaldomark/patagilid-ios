@@ -134,6 +134,14 @@ struct MountainListsView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
             HStack(spacing: 12) {
+                Button {
+                    showCreateSheet = true
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
+                        .foregroundColor(.gliderBlue)
+                }
+
                 if !lists.isEmpty {
                     Button {
                         isSearchVisible = true
@@ -142,14 +150,6 @@ struct MountainListsView: View {
                             .font(.title3)
                             .foregroundColor(.gliderBlue)
                     }
-                }
-
-                Button {
-                    showCreateSheet = true
-                } label: {
-                    Text("Add List")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
                 }
             }
         }

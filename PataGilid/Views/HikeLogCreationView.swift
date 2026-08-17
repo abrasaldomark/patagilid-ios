@@ -27,6 +27,9 @@ struct HikeLogCreationView: View {
                     activityForm
                     trailDetailsForm
                     
+                    outcomeForm
+                    climbNotesForm
+                    
                     photosForm
                 }
                 .padding(.bottom, 24)
@@ -136,7 +139,7 @@ struct HikeLogCreationView: View {
     
     private var activityForm: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Climb Info")
+            Text("Climb Duration")
                 .font(.headline)
                 .padding(.horizontal)
             
@@ -158,21 +161,6 @@ struct HikeLogCreationView: View {
                     in: viewModel.dateTimeStart...,
                     displayedComponents: [.date, .hourAndMinute]
                 )
-                .padding()
-                
-                Divider().padding(.leading)
-                
-                // Outcome selector — mutually exclusive
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Climb Outcome")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    
-                    HStack(spacing: 12) {
-                        outcomeCard(.summited)
-                        outcomeCard(.backedOut)
-                    }
-                }
                 .padding()
             }
             .background(Color.secondary.opacity(0.06))
@@ -408,6 +396,90 @@ struct HikeLogCreationView: View {
         }
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.15), value: viewModel.outcome)
+    }
+    
+    // MARK: - Outcome Form
+    
+    private var outcomeForm: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Climb Outcome")
+                .font(.headline)
+                .padding(.horizontal)
+            
+            HStack(spacing: 12) {
+                outcomeCard(.summited)
+                outcomeCard(.backedOut)
+            }
+            .padding()
+            .background(Color.secondary.opacity(0.06))
+            .cornerRadius(14)
+            .padding(.horizontal)
+        }
+    }
+    
+    // MARK: - Climb Notes Form
+    
+    private var climbNotesForm: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Climb Notes")
+                .font(.headline)
+                .padding(.horizontal)
+            
+            VStack(alignment: .leading, spacing: 12) {
+                if viewModel.outcome == .backedOut {
+                    Text("Why did you back out? (Optional)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            let chips = ["⛈️ Bad Weather", "🤕 Injury / Sickness", "⏰ Time Constraint", "🥾 Trail Conditions", "🛑 Group / Safety Call"]
+                            ForEach(chips, id: \.self) { chip in
+                                Button(action: {
+                                    if !viewModel.climbNotes.isEmpty {
+                                        viewModel.climbNotes += "\n"
+                                    }
+                                    viewModel.climbNotes += chip
+                                }) {
+                                    Text(chip)
+                                        .font(.caption)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color.secondary.opacity(0.12))
+                                        .foregroundColor(.primary)
+                                        .cornerRadius(16)
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                ZStack(alignment: .topLeading) {
+                    if viewModel.climbNotes.isEmpty {
+                        Text(viewModel.outcome == .summited ? "Journal your climb experience... (Optional)" : "Additional notes about the climb... (Optional)")
+                            .foregroundColor(Color(uiColor: .tertiaryLabel))
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 8)
+                            .allowsHitTesting(false)
+                    }
+                    TextEditor(text: $viewModel.climbNotes)
+                        .frame(minHeight: 100)
+                        .scrollContentBackground(.hidden)
+                        .background(Color.clear)
+                }
+                .padding(8)
+                .background(Color(uiColor: .systemBackground))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                )
+            }
+            .padding(14)
+            .background(Color.secondary.opacity(0.06))
+            .cornerRadius(14)
+            .padding(.horizontal)
+        }
     }
     
     // MARK: - Photos Attachment Form

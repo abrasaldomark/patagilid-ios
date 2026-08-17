@@ -65,12 +65,15 @@ final class HikeLog: Codable, Identifiable {
     /// Intermediate checkpoints for a circuit route.
     var waypoints: [String] = []
     
+    /// Optional journal notes or DNF reason for the climb.
+    var climbNotes: String = ""
+    
     // MARK: - Explicit Memberwise Init
     
     init(id: String = UUID().uuidString, userId: String, mountainId: String, dateTimeStart: Date, dateTimeEnd: Date,
          didSummit: Bool, photoUrls: [String],
          trailName: String = "", routeType: String = "", exitTrailName: String = "",
-         trailDifficulty: String = "", trailClass: String = "", waypoints: [String] = []) {
+         trailDifficulty: String = "", trailClass: String = "", waypoints: [String] = [], climbNotes: String = "") {
         self.id = id
         self.userId = userId
         self.mountainId = mountainId
@@ -84,6 +87,7 @@ final class HikeLog: Codable, Identifiable {
         self.trailDifficulty = trailDifficulty
         self.trailClass = trailClass
         self.waypoints = waypoints
+        self.climbNotes = climbNotes
     }
     
     // MARK: - Codable
@@ -102,6 +106,7 @@ final class HikeLog: Codable, Identifiable {
         case trailDifficulty
         case trailClass
         case waypoints
+        case climbNotes
     }
     
     init(from decoder: Decoder) throws {
@@ -119,6 +124,7 @@ final class HikeLog: Codable, Identifiable {
         trailDifficulty = try container.decodeIfPresent(String.self, forKey: .trailDifficulty) ?? ""
         trailClass = try container.decodeIfPresent(String.self, forKey: .trailClass) ?? ""
         waypoints = try container.decodeIfPresent([String].self, forKey: .waypoints) ?? []
+        climbNotes = try container.decodeIfPresent(String.self, forKey: .climbNotes) ?? ""
     }
     
     func encode(to encoder: Encoder) throws {
@@ -136,5 +142,6 @@ final class HikeLog: Codable, Identifiable {
         try container.encode(trailDifficulty, forKey: .trailDifficulty)
         try container.encode(trailClass, forKey: .trailClass)
         try container.encode(waypoints, forKey: .waypoints)
+        try container.encode(climbNotes, forKey: .climbNotes)
     }
 }

@@ -31,6 +31,9 @@ struct SummitLogDetailView: View {
             VStack(spacing: 20) {
                 outcomeHero
                 detailCards
+                if !log.climbNotes.isEmpty {
+                    climbNotesCard
+                }
                 if !log.cleanPhotoUrls.isEmpty {
                     photosCard
                 }
@@ -212,6 +215,22 @@ struct SummitLogDetailView: View {
                     valueColor: log.didSummit ? .primary : .red
                 )
             }
+        }
+    }
+    
+    // MARK: - Climb Notes Card
+    
+    private var climbNotesCard: some View {
+        sectionCard(title: "Climb Notes") {
+            HStack {
+                Text(log.climbNotes)
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 14)
         }
     }
     

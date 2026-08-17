@@ -48,6 +48,7 @@ class HikeLogViewModel: ObservableObject {
     @Published var trailDifficulty: String = ""
     @Published var trailClass: String = ""
     @Published var waypoints: [String] = []
+    @Published var climbNotes: String = ""
     
     // MARK: - Photo Attachments
     @Published var selectedPhotos: [PhotosPickerItem] = []
@@ -215,6 +216,7 @@ class HikeLogViewModel: ObservableObject {
         self.trailClass = log.trailClass
         self.existingPhotoUrls = log.cleanPhotoUrls
         self.waypoints = log.waypoints
+        self.climbNotes = log.climbNotes
     }
     
     // MARK: - Submission & Deletion
@@ -294,7 +296,8 @@ class HikeLogViewModel: ObservableObject {
                     exitTrailName: cleanExitTrail,
                     trailDifficulty: cleanDifficulty,
                     trailClass: cleanTrailClass,
-                    waypoints: routeType == "Circuit" ? waypoints.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } : []
+                    waypoints: routeType == "Circuit" ? waypoints.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } : [],
+                    climbNotes: climbNotes.trimmingCharacters(in: .whitespacesAndNewlines)
                 )
                 
                 let db = Firestore.firestore()

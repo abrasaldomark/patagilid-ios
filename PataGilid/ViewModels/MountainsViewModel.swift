@@ -26,7 +26,6 @@ class MountainsViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var isDownloading: Bool = false
     @Published var downloadProgress: Double = 0.0
-    @Published var stagedPeakIds: Set<String> = []
     
     /// Mountains with proposed GPS coordinates awaiting admin verification.
     var pendingGPSPeaks: [Mountain] {
@@ -167,13 +166,7 @@ class MountainsViewModel: ObservableObject {
         var descriptor = FetchDescriptor<Mountain>(sortBy: [SortDescriptor(\.name)])
         if let stored = try? context.fetch(descriptor) {
             var combined = stored
-            // Retain any uncommitted peaks currently staged in memory during log creation
-            let staged = self.allPeaks.filter { self.stagedPeakIds.contains($0.id) }
-            for stagedPeak in staged {
-                if !combined.contains(where: { $0.id == stagedPeak.id }) {
-                    combined.append(stagedPeak)
-                }
-            }
+
             self.allPeaks = combined
         }
     }
@@ -227,39 +220,18 @@ class MountainsViewModel: ObservableObject {
             updatedAt: Date()
         )
         
-        // Commit-on-Climb: Stage in temporary device memory only! Do NOT push to Firestore or Admin Queue until an ascent log is saved.
-        stagedPeakIds.insert(cleanID)
+        let db = Firestore.firestore()
+        try await db.collection("mountains").document(cleanID).setData(from: newPeak)
+        if let context = modelContext {
+            context.insert(newPeak)
+            try? context.save()
+        }
+        
         if !allPeaks.contains(where: { $0.id == cleanID }) {
             allPeaks.append(newPeak)
         }
-        print("💡 Staged uncommitted community mountain in local memory: \(cleanID)")
+        print("🚀 Submitted new custom mountain directly to Cloud Firestore: \(cleanID)")
         return newPeak
-    }
-    
-    /// Commits a staged custom mountain to Cloud Firestore upon saving an ascent log.
-    func commitStagedMountainIfNeeded(_ mountain: Mountain) async {
-        guard stagedPeakIds.contains(mountain.id) else { return }
-        let db = Firestore.firestore()
-        do {
-            mountain.updatedAt = Date()
-            try await db.collection("mountains").document(mountain.id).setData(from: mountain)
-            if let context = modelContext {
-                context.insert(mountain)
-                try? context.save()
-            }
-            stagedPeakIds.remove(mountain.id)
-            print("🚀 Commit-on-Climb: Successfully pushed staged peak to Cloud Firestore & SwiftData upon log save: \(mountain.id)")
-        } catch {
-            print("⚠️ Failed to commit staged mountain: \(error.localizedDescription)")
-        }
-    }
-    
-    /// Evaporates a staged custom mountain from local memory if the user cancels logging an ascent.
-    func discardStagedMountainIfNeeded(_ mountain: Mountain) {
-        guard stagedPeakIds.contains(mountain.id) else { return }
-        stagedPeakIds.remove(mountain.id)
-        allPeaks.removeAll { $0.id == mountain.id }
-        print("🗑️ Discarded uncommitted staged mountain from local memory upon cancel/exit: \(mountain.id)")
     }
     
     /// Approves a submitted mountain, making it live on the public mountain list.

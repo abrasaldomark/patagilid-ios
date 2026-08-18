@@ -23,7 +23,16 @@ struct MountainDetailView: View {
     @Query private var lists: [MountainList]
     
     let mountain: Mountain
+    let initialShowLogModal: Bool
+    
     @State private var showingLogModal: Bool = false
+    @State private var hasAutoOpenedLog: Bool = false
+    
+    init(mountain: Mountain, initialShowLogModal: Bool = false) {
+        self.mountain = mountain
+        self.initialShowLogModal = initialShowLogModal
+    }
+    
     /// Regenerated on every toolbar tap to guarantee a fresh @StateObject in the sheet.
     @State private var logSessionId = UUID()
     @State private var showSaveToListSheet: Bool = false
@@ -282,14 +291,12 @@ struct MountainDetailView: View {
             CoordinateContributionView(mountain: mountain)
                 .environmentObject(authViewModel)
         }
-        .onDisappear {
-            if !showingLogModal {
-                // Commit-on-Climb: Evaporate uncommitted staged peak if user navigates away without recording an ascent
-                MountainsViewModel.shared?.discardStagedMountainIfNeeded(mountain)
-            }
-        }
         .onAppear {
             displayIsSaved = isSaved
+            if initialShowLogModal && !hasAutoOpenedLog {
+                showingLogModal = true
+                hasAutoOpenedLog = true
+            }
         }
         .onChange(of: showSaveToListSheet) { _, isShowing in
             if !isShowing {

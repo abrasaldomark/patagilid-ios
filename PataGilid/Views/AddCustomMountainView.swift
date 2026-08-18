@@ -8,6 +8,11 @@
 import SwiftUI
 import FirebaseAuth
 import CoreLocation
+import Combine
+
+class AddCustomMountainSubmitState: ObservableObject {
+    @Published var isSubmitting: Bool = false
+}
 
 struct AddCustomMountainView: View {
     @Environment(\.dismiss) private var dismiss
@@ -15,7 +20,7 @@ struct AddCustomMountainView: View {
     @EnvironmentObject var mountainsViewModel: MountainsViewModel
     
     /// Callback when a new mountain is successfully created or selected from suggestions
-    var onMountainSelected: (Mountain) -> Void
+    var onMountainSubmitted: (Mountain, Bool, Bool) -> Void
     
     // Form State
     @State private var mountainName: String = ""
@@ -28,13 +33,14 @@ struct AddCustomMountainView: View {
     @State private var selectedDifficulty: String = "3/9 (Minor)"
     @State private var selectedClass: String = "Class 1-2"
     @State private var descriptionText: String = ""
+    @State private var showingSubmitActionSheet: Bool = false
     
     // Map State
     @State private var isMapPresented: Bool = false
     @State private var showOutsidePHAlert: Bool = false
     
     // Status & Error handling
-    @State private var isSubmitting: Bool = false
+    @StateObject private var submitState = AddCustomMountainSubmitState()
     @State private var errorMessage: String?
     @State private var showSuccessAlert: Bool = false
     @State private var showInfoCard: Bool = true
@@ -132,27 +138,42 @@ struct AddCustomMountainView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
+                    Button(action: { dismiss() }) {
+                        Text("Cancel")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 16)
                     }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.blue)
-                    .padding(.horizontal, 16)
-                    .frame(height: 48)
-                    .background(Color(UIColor.secondarySystemFill))
-                    .clipShape(Capsule())
+                    .foregroundColor(.gliderBlue)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Submit") {
-                        submitCustomMountain()
+                    Button(action: {
+                        if !submitState.isSubmitting { showingSubmitActionSheet = true }
+                    }) {
+                        ZStack {
+                            Text("Done")
+                                .font(.subheadline.weight(.semibold))
+                                .padding(.horizontal, 16)
+                                .opacity(submitState.isSubmitting ? 0 : 1)
+                            
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .gliderBlue))
+                                .opacity(submitState.isSubmitting ? 1 : 0)
+                        }
                     }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor((mountainName.isEmpty || elevationText.isEmpty) ? .gray : .gliderBlue)
-                    .padding(.horizontal, 16)
-                    .frame(height: 48)
-                    .background(Color(UIColor.systemBackground))
-                    .clipShape(Capsule())
-                    .disabled(mountainName.isEmpty || elevationText.isEmpty || isSubmitting)
+                    .foregroundColor((mountainName.isEmpty || elevationText.isEmpty || submitState.isSubmitting) ? .gray : .gliderBlue)
+                    .disabled(mountainName.isEmpty || elevationText.isEmpty)
+                    .allowsHitTesting(!submitState.isSubmitting)
+                    .confirmationDialog("Submit Mountain", isPresented: $showingSubmitActionSheet, titleVisibility: .visible) {
+                        Button("Submit") {
+                            processSubmit(logHike: false, navigateToMountain: false)
+                        }
+                        Button("Submit & Add Hike") {
+                            processSubmit(logHike: true, navigateToMountain: true)
+                        }
+                        Button("Cancel", role: .cancel) { }
+                    } message: {
+                        Text("Would you like to just submit this mountain or also record a hike for it?")
+                    }
                 }
             }
             .fullScreenCover(isPresented: $isMapPresented) {
@@ -215,29 +236,10 @@ struct AddCustomMountainView: View {
             } message: {
                 Text("Your mountain contribution has been successfully submitted and is now pending review.")
             }
-            .overlay {
-                if isSubmitting {
-                    ZStack {
-                        Color.black.opacity(0.35).ignoresSafeArea()
-                        VStack(spacing: 16) {
-                            ProgressView()
-                                .tint(.white)
-                                .scaleEffect(1.5)
-                            Text("Saving mountain...")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                        }
-                        .padding(24)
-                        .background(Color(.systemGray6).opacity(0.95))
-                        .cornerRadius(16)
-                        .shadow(radius: 10)
-                    }
-                }
-            }
         }
     }
     
-    private func submitCustomMountain() {
+    private func processSubmit(logHike: Bool, navigateToMountain: Bool) {
         let cleanInputName = mountainName
             .replacingOccurrences(of: "Mt.", with: "", options: .caseInsensitive)
             .replacingOccurrences(of: "Mount", with: "", options: .caseInsensitive)
@@ -267,7 +269,7 @@ struct AddCustomMountainView: View {
             return
         }
         
-        isSubmitting = true
+        submitState.isSubmitting = true
         errorMessage = nil
         
         Task {
@@ -287,13 +289,13 @@ struct AddCustomMountainView: View {
                 )
                 
                 await MainActor.run {
-                    isSubmitting = false
-                    onMountainSelected(newMountain)
+                    submitState.isSubmitting = false
+                    onMountainSubmitted(newMountain, logHike, navigateToMountain)
                     dismiss()
                 }
             } catch {
                 await MainActor.run {
-                    isSubmitting = false
+                    submitState.isSubmitting = false
                     errorMessage = "Failed to save mountain: \(error.localizedDescription)"
                 }
             }
@@ -347,7 +349,7 @@ struct AddCustomMountainView: View {
                 
                 ForEach(similarPeaks) { peak in
                     Button {
-                        onMountainSelected(peak)
+                        onMountainSubmitted(peak, false, true)
                         dismiss()
                     } label: {
                         HStack {

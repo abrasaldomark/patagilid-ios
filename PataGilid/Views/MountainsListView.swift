@@ -17,6 +17,7 @@ struct MountainsListView: View {
     @State private var showAddCustomPeak: Bool = false
     @State private var showAdminQueue: Bool = false
     @State private var selectedNewPeak: Mountain? = nil
+    @State private var autoOpenLogForPeakId: String? = nil
     @State private var isSearchVisible: Bool = false
     
     var body: some View {
@@ -152,7 +153,7 @@ struct MountainsListView: View {
             }
             .navigationTitle("Philippine Mountains")
             .navigationDestination(item: $selectedNewPeak) { peak in
-                MountainDetailView(mountain: peak)
+                MountainDetailView(mountain: peak, initialShowLogModal: peak.id == autoOpenLogForPeakId)
             }
             .toolbar {
                 // Sorting & Region Filters Menu
@@ -175,8 +176,13 @@ struct MountainsListView: View {
                 }
             }
             .sheet(isPresented: $showAddCustomPeak) {
-                AddCustomMountainView { newPeak in
-                    selectedNewPeak = newPeak
+                AddCustomMountainView { newPeak, openLog, navigateToMountain in
+                    if openLog {
+                        autoOpenLogForPeakId = newPeak.id
+                    }
+                    if navigateToMountain {
+                        selectedNewPeak = newPeak
+                    }
                 }
                 .environmentObject(authViewModel)
                 .environmentObject(viewModel)

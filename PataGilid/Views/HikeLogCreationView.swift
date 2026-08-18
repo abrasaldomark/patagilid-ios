@@ -52,42 +52,37 @@ struct HikeLogCreationView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        if logToEdit == nil {
-                            // Commit-on-Climb: If user cancels recording an ascent for an uncommitted custom mountain, discard it!
-                            MountainsViewModel.shared?.discardStagedMountainIfNeeded(mountain)
-                        }
+                    Button(action: {
                         dismiss()
+                    }) {
+                        Text("Cancel")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 16)
                     }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.blue)
-                    .padding(.horizontal, 16)
-                    .frame(height: 48)
-                    .background(Color(UIColor.secondarySystemFill))
-                    .clipShape(Capsule())
+                    .foregroundColor(.gliderBlue)
                     .disabled(viewModel.isSaving)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
+                    Button(action: {
                         viewModel.submitLog(for: mountain, editingLog: logToEdit) { updatedLog in
                             onSave?(updatedLog)
                         }
-                    } label: {
-                        if viewModel.isSaving {
-                            ProgressView()
-                                .tint(.gliderBlue)
-                        } else {
+                    }) {
+                        ZStack {
                             Text("Save")
+                                .font(.subheadline.weight(.semibold))
+                                .padding(.horizontal, 16)
+                                .opacity(viewModel.isSaving ? 0 : 1)
+                            
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .gliderBlue))
+                                .opacity(viewModel.isSaving ? 1 : 0)
                         }
                     }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(viewModel.isSaving ? .gray : .gliderBlue)
-                    .padding(.horizontal, 16)
-                    .frame(height: 48)
-                    .background(Color(UIColor.systemBackground))
-                    .clipShape(Capsule())
-                    .disabled(viewModel.isSaving)
+                    .foregroundColor(viewModel.isSaving || !viewModel.isValid ? .gray : .gliderBlue)
+                    .disabled(!viewModel.isValid)
+                    .allowsHitTesting(!viewModel.isSaving)
                 }
             }
             .onChange(of: viewModel.didCompleteSuccess) { _, success in

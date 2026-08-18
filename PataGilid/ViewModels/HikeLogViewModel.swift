@@ -63,6 +63,26 @@ class HikeLogViewModel: ObservableObject {
         existingPhotoUrls.count + selectedPhotoAssets.count
     }
     
+    // MARK: - Validation
+    var isValid: Bool {
+        guard dateTimeEnd > dateTimeStart else { return false }
+        
+        let cleanTrailName = trailName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanTrailName.isEmpty else { return false }
+        
+        if routeType == "Traverse" {
+            let cleanExitTrail = exitTrailName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanExitTrail.isEmpty else { return false }
+        }
+        
+        if routeType == "Circuit" {
+            let validWaypoints = waypoints.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            guard !validWaypoints.isEmpty else { return false }
+        }
+        
+        return true
+    }
+    
     // MARK: - Status
     @Published var isSaving: Bool = false
     @Published var errorMessage: String? = nil
@@ -260,9 +280,7 @@ class HikeLogViewModel: ObservableObject {
         
         Task {
             do {
-                // Commit-on-Climb: If this is an uncommitted custom mountain staged in local memory, commit it to Firestore now!
-                await MountainsViewModel.shared?.commitStagedMountainIfNeeded(mountain)
-                
+
                 var newlyUploadedUrls: [String] = []
                 if !selectedPhotoAssets.isEmpty {
                     newlyUploadedUrls = try await PhotoUploadService.uploadPhotos(assets: selectedPhotoAssets, userId: user.uid)

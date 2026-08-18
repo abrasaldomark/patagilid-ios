@@ -122,9 +122,6 @@ struct AddCustomMountainView: View {
                 
                 // MARK: - Optional Description
                 descriptionSection
-                
-                // MARK: - Submit Button
-                submitButtonSection
             }
             .onAppear {
                 if region.isEmpty, let first = availableRegionsForSelectedIsland.first {
@@ -138,7 +135,24 @@ struct AddCustomMountainView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(.red)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.blue)
+                    .padding(.horizontal, 16)
+                    .frame(height: 48)
+                    .background(Color(UIColor.secondarySystemFill))
+                    .clipShape(Capsule())
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Submit") {
+                        submitCustomMountain()
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor((mountainName.isEmpty || elevationText.isEmpty) ? .gray : .gliderBlue)
+                    .padding(.horizontal, 16)
+                    .frame(height: 48)
+                    .background(Color(UIColor.systemBackground))
+                    .clipShape(Capsule())
+                    .disabled(mountainName.isEmpty || elevationText.isEmpty || isSubmitting)
                 }
             }
             .fullScreenCover(isPresented: $isMapPresented) {
@@ -456,25 +470,4 @@ struct AddCustomMountainView: View {
         }
     }
     
-    @ViewBuilder
-    private var submitButtonSection: some View {
-        Section {
-            Button(action: submitCustomMountain) {
-                HStack {
-                    Spacer()
-                    Image(systemName: "mountain.2.fill")
-                    Text("Submit mountain for approval")
-                        .fontWeight(.bold)
-                    Spacer()
-                }
-            }
-            .disabled(mountainName.isEmpty || elevationText.isEmpty || isSubmitting)
-            .foregroundColor(
-                (mountainName.isEmpty || elevationText.isEmpty) ? Color(uiColor: .systemGray) : .white
-            )
-            .listRowBackground(
-                (mountainName.isEmpty || elevationText.isEmpty || isSubmitting) ? Color.gray.opacity(0.3) : Color.gliderBlue
-            )
-        }
-    }
 }

@@ -48,7 +48,7 @@ struct HikeLogCreationView: View {
                     Text(msg)
                 }
             }
-            .navigationTitle(logToEdit == nil ? "Log Ascent" : "Edit Ascent Log")
+            .navigationTitle(logToEdit == nil ? "New Hike" : "Edit Hike")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -59,6 +59,12 @@ struct HikeLogCreationView: View {
                         }
                         dismiss()
                     }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.blue)
+                    .padding(.horizontal, 16)
+                    .frame(height: 48)
+                    .background(Color(UIColor.secondarySystemFill))
+                    .clipShape(Capsule())
                     .disabled(viewModel.isSaving)
                 }
                 
@@ -73,10 +79,14 @@ struct HikeLogCreationView: View {
                                 .tint(.gliderBlue)
                         } else {
                             Text("Save")
-                                .fontWeight(.bold)
-                                .foregroundColor(.gliderBlue)
                         }
                     }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(viewModel.isSaving ? .gray : .gliderBlue)
+                    .padding(.horizontal, 16)
+                    .frame(height: 48)
+                    .background(Color(UIColor.systemBackground))
+                    .clipShape(Capsule())
                     .disabled(viewModel.isSaving)
                 }
             }

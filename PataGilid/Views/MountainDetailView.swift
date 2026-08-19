@@ -179,7 +179,7 @@ struct MountainDetailView: View {
                             .background(Color.gliderBlue.opacity(0.12))
                             .cornerRadius(12)
                         }
-                    } else if mountain.pendingLatitude != nil && mountain.pendingLongitude != nil {
+                    } else if mountain.pendingCalibrationsCount > 0 {
                         pendingCalibrationBanner
                     } else {
                         crowdsourcedGPSBanner
@@ -407,16 +407,6 @@ struct MountainDetailView: View {
     
     // MARK: - Crowdsourced GPS Banners
     
-    private var isSubmittedByCurrentUser: Bool {
-        guard let currentUserEmail = authViewModel.currentUser?.email else { return false }
-        return mountain.pendingContributorEmail == currentUserEmail
-    }
-    
-    private var isVerifiedByCurrentUser: Bool {
-        guard let currentUserEmail = authViewModel.currentUser?.email else { return false }
-        return mountain.pendingVerifierEmails.contains(currentUserEmail)
-    }
-    
     @ViewBuilder
     private var pendingCalibrationBanner: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -430,75 +420,9 @@ struct MountainDetailView: View {
                         .font(.subheadline)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
-                    Text("A summit location has been submitted for this mountain and is currently awaiting admin verification.")
+                    Text("\(mountain.pendingCalibrationsCount) summit location(s) have been submitted for this mountain and are currently awaiting admin verification.")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                }
-            }
-            
-            if authViewModel.isAdmin {
-                adminPendingGPSControls
-            } else if isSubmittedByCurrentUser {
-                HStack {
-                    Spacer()
-                    Image(systemName: "hourglass")
-                    Text("Submitted by You • Pending Review")
-                        .fontWeight(.bold)
-                    Spacer()
-                }
-                .padding(.vertical, 10)
-                .background(Color.secondary.opacity(0.15))
-                .foregroundColor(.secondary)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-            } else if isVerifiedByCurrentUser {
-                HStack {
-                    Spacer()
-                    Image(systemName: "checkmark.seal.fill")
-                    Text("You Confirmed This Pin (\(mountain.pendingVerifications) Total)")
-                        .fontWeight(.bold)
-                    Spacer()
-                }
-                .padding(.vertical, 10)
-                .background(Color.green.opacity(0.15))
-                .foregroundColor(.green)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-            } else {
-                HStack(spacing: 8) {
-                    Button {
-                        showingInternalMap = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "map.fill")
-                            Text("View on Map")
-                                .fontWeight(.semibold)
-                        }
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 12)
-                        .background(Color.secondary.opacity(0.15))
-                        .foregroundColor(.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    }
-                    
-                    Button {
-                        if let email = authViewModel.currentUser?.email {
-                            Task {
-                                try? await MountainsViewModel.shared?.verifyPendingGPS(for: mountain, userEmail: email)
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            Spacer()
-                            Image(systemName: "hand.thumbsup.fill")
-                            Text("Confirm Accuracy (\(mountain.pendingVerifications))")
-                                .fontWeight(.bold)
-                            Spacer()
-                        }
-                        .padding(.vertical, 10)
-                        .background(Color.orange)
-                        .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    }
-                    .disabled(authViewModel.currentUser == nil)
                 }
             }
         }
@@ -510,118 +434,6 @@ struct MountainDetailView: View {
                 .stroke(Color.orange.opacity(0.3), lineWidth: 1)
         )
     }
-    
-    @ViewBuilder
-    private var adminPendingGPSControls: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Image(systemName: "shield.fill")
-                    .foregroundColor(.gliderBlue)
-                Text("Admin Moderation Actions")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(.gliderBlue)
-                Spacer()
-            }
-            
-            VStack(alignment: .leading, spacing: 6) {
-                if let pLat = mountain.pendingLatitude, let pLon = mountain.pendingLongitude {
-                    HStack(spacing: 8) {
-                        Image(systemName: "mappin.circle.fill")
-                            .foregroundColor(.orange)
-                        Text(String(format: "%.6f, %.6f", pLat, pLon))
-                            .font(.subheadline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                    }
-                }
-                
-                if let contributorName = mountain.displayPendingContributorName {
-                    HStack(spacing: 4) {
-                        Image(systemName: "person.circle.fill")
-                            .foregroundColor(.purple)
-                            .font(.caption2)
-                        Text("Submitted by: \(contributorName)")
-                            .font(.caption2)
-                            .fontWeight(.medium)
-                            .foregroundColor(.purple)
-                    }
-                    .padding(.top, 2)
-                }
-                
-                if mountain.pendingVerifications > 0 {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.seal.fill")
-                            .foregroundColor(.green)
-                            .font(.caption2)
-                        Text("⭐️ Upvoted by \(mountain.pendingVerifications) community mountaineer\(mountain.pendingVerifications == 1 ? "" : "s")")
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.green)
-                    }
-                    .padding(.top, 2)
-                }
-            }
-            
-            HStack(spacing: 8) {
-                Button {
-                    showingInternalMap = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "map.fill")
-                        Text("View Map")
-                    }
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(Color.secondary.opacity(0.15))
-                    .foregroundColor(.primary)
-                    .cornerRadius(8)
-                }
-                
-                Button {
-                    Task {
-                        try? await MountainsViewModel.shared?.declineGPS(for: mountain)
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "trash.fill")
-                        Text("Reject")
-                    }
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(Color.red.opacity(0.15))
-                    .foregroundColor(.red)
-                    .cornerRadius(8)
-                }
-                
-                Button {
-                    Task {
-                        try? await MountainsViewModel.shared?.approveGPS(for: mountain)
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle.fill")
-                        Text("Approve")
-                    }
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(Color.gliderBlue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-                }
-            }
-        }
-        .padding(10)
-        .background(Color.secondary.opacity(0.08))
-        .cornerRadius(10)
-    }
-    
     @ViewBuilder
     private var crowdsourcedGPSBanner: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -889,21 +701,10 @@ struct CoordinateContributionView: View {
             let firstName = authViewModel.currentUser?.displayName?.components(separatedBy: " ").first?.capitalized ?? email.formattedFirstName
             let regionTrimmed = editedRegion.trimmingCharacters(in: .whitespacesAndNewlines)
             
-            let db = Firestore.firestore()
             do {
-                try await db.collection("mountains").document(mountain.id).updateData([
-                    "pendingLatitude": lat,
-                    "pendingLongitude": lon,
-                    "pendingRegion": regionTrimmed,
-                    "pendingContributorEmail": email,
-                    "pendingContributorName": firstName
-                ])
+                try await MountainsViewModel.shared?.submitGPSCalibration(for: mountain, lat: lat, lon: lon, userEmail: email, userName: firstName)
+                
                 await MainActor.run {
-                    mountain.pendingLatitude = lat
-                    mountain.pendingLongitude = lon
-                    mountain.pendingRegion = regionTrimmed
-                    mountain.pendingContributorEmail = email
-                    mountain.pendingContributorName = firstName
                     isSubmitting = false
                     dismiss()
                 }

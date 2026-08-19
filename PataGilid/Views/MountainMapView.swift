@@ -24,13 +24,13 @@ struct MountainMapView: View {
     @State private var adjustedCoordinate: CLLocationCoordinate2D? = nil
     @State private var isSaving: Bool = false
     
-    private var displayLatitude: Double? { adjustedCoordinate?.latitude ?? mountain.latitude ?? mountain.pendingLatitude }
-    private var displayLongitude: Double? { adjustedCoordinate?.longitude ?? mountain.longitude ?? mountain.pendingLongitude }
-    private var isPending: Bool { mountain.latitude == nil && mountain.pendingLatitude != nil }
+    private var displayLatitude: Double? { adjustedCoordinate?.latitude ?? mountain.latitude }
+    private var displayLongitude: Double? { adjustedCoordinate?.longitude ?? mountain.longitude }
+    private var isPending: Bool { mountain.latitude == nil }
     
     init(mountain: Mountain) {
         self.mountain = mountain
-        if let lat = mountain.latitude ?? mountain.pendingLatitude, let lon = mountain.longitude ?? mountain.pendingLongitude {
+        if let lat = mountain.latitude, let lon = mountain.longitude {
             _center = State(initialValue: CLLocationCoordinate2D(latitude: lat, longitude: lon))
             _distance = State(initialValue: 5000)
         } else {
@@ -210,26 +210,9 @@ struct MountainMapView: View {
         isSaving = true
         defer { isSaving = false }
         
-        if approveNow {
-            let newRegion = mountain.pendingRegion ?? mountain.region
-            mountain.latitude = lat
-            mountain.longitude = lon
-            mountain.region = newRegion
-            mountain.isVerifiedByCommunity = true
-            mountain.communityVerifications += (1 + mountain.pendingVerifications)
-            mountain.pendingLatitude = nil
-            mountain.pendingLongitude = nil
-            mountain.pendingRegion = nil
-            mountain.pendingContributorEmail = nil
-            mountain.pendingContributorName = nil
-            mountain.pendingVerifications = 0
-            mountain.pendingVerifierEmails = []
-            mountain.updatedAt = Date()
-        } else {
-            mountain.pendingLatitude = lat
-            mountain.pendingLongitude = lon
-            mountain.updatedAt = Date()
-        }
+        mountain.latitude = lat
+        mountain.longitude = lon
+        mountain.updatedAt = Date()
         
         let db = Firestore.firestore()
         try? db.collection("mountains").document(mountain.id).setData(from: mountain)

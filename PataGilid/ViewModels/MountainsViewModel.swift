@@ -19,6 +19,8 @@ enum PeakSortOrder: String, CaseIterable {
 @MainActor
 class MountainsViewModel: ObservableObject {
     @Published var allPeaks: [Mountain] = []
+    @Published var pendingGpsSubmissions: [CoordinateSubmission] = []
+    private var submissionsListener: ListenerRegistration?
     @Published var searchText: String = ""
     @Published var selectedIslandGroup: IslandGroup? = nil
     @Published var selectedRegion: String? = nil
@@ -26,11 +28,6 @@ class MountainsViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var isDownloading: Bool = false
     @Published var downloadProgress: Double = 0.0
-    
-    /// Mountains with proposed GPS coordinates awaiting admin verification.
-    var pendingGPSPeaks: [Mountain] {
-        return allPeaks.filter { $0.pendingLatitude != nil && $0.pendingLongitude != nil }
-    }
     
     static weak var shared: MountainsViewModel?
     
@@ -48,7 +45,7 @@ class MountainsViewModel: ObservableObject {
     
     /// Total combined count of pending mountain submissions and GPS calibrations for administrative moderation.
     var totalPendingReviewsCount: Int {
-        return pendingReviewPeaks.count + pendingGPSPeaks.count
+        return pendingReviewPeaks.count + pendingGpsSubmissions.count
     }
     
     /// Whether there are any pending items awaiting administrative moderation.
@@ -63,9 +60,9 @@ class MountainsViewModel: ObservableObject {
         return allPeaks.filter { !$0.isPubliclyApproved && $0.contributorEmail == email }
     }
     
-    /// GPS calibrations proposed by the user that are still pending.
-    func userPendingGPS(forEmail email: String) -> [Mountain] {
-        return allPeaks.filter { $0.pendingContributorEmail == email }
+    /// GPS calibrations proposed by the user.
+    func userPendingGPS(forEmail email: String) -> [CoordinateSubmission] {
+        return pendingGpsSubmissions.filter { $0.contributorEmail == email }
     }
     
     /// Approved mountain submissions by the user.
@@ -159,9 +156,23 @@ class MountainsViewModel: ObservableObject {
         try? await Task.sleep(nanoseconds: 250_000_000) // Brief 0.25s pause so full bar finishes animating smoothly before hiding
         self.isLoading = false
         self.isDownloading = false
+        listenForSubmissions()
         self.downloadProgress = 0.0
     }
     
+    
+    func listenForSubmissions() {
+        guard submissionsListener == nil else { return }
+        submissionsListener = Firestore.firestore().collection("coordinate_submissions")
+            .whereField("status", isEqualTo: SubmissionStatus.pending.rawValue)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let documents = snapshot?.documents else { return }
+                self?.pendingGpsSubmissions = documents.compactMap { doc -> CoordinateSubmission? in
+                    try? doc.data(as: CoordinateSubmission.self)
+                }.sorted(by: { $0.createdAt > $1.createdAt })
+            }
+    }
+
     func refreshFromSwiftData(in context: ModelContext) {
         var descriptor = FetchDescriptor<Mountain>(sortBy: [SortDescriptor(\.name)])
         if let stored = try? context.fetch(descriptor) {
@@ -234,6 +245,70 @@ class MountainsViewModel: ObservableObject {
         return newPeak
     }
     
+    /// Submits a GPS calibration proposal.
+    func submitGPSCalibration(for mountain: Mountain, lat: Double, lon: Double, userEmail: String, userName: String?) async throws {
+        let db = Firestore.firestore()
+        
+        let newSubmission = CoordinateSubmission(
+            mountainId: mountain.id,
+            mountainName: mountain.name,
+            latitude: lat,
+            longitude: lon,
+            contributorEmail: userEmail,
+            contributorName: userName,
+            status: .pending,
+            createdAt: Date()
+        )
+        
+        let ref = db.collection("coordinate_submissions").document()
+        try ref.setData(from: newSubmission)
+        
+        mountain.pendingCalibrationsCount += 1
+        mountain.updatedAt = Date()
+        try db.collection("mountains").document(mountain.id).setData(from: mountain)
+        try? modelContext?.save()
+        objectWillChange.send()
+    }
+    
+    /// Updates a GPS calibration proposal.
+    func updateGPSCalibration(submissionId: String, lat: Double, lon: Double) async throws {
+        let db = Firestore.firestore()
+        let ref = db.collection("coordinate_submissions").document(submissionId)
+        try await ref.updateData([
+            "latitude": lat,
+            "longitude": lon,
+            "createdAt": Date()
+        ])
+    }
+
+    /// Deletes a GPS calibration proposal.
+    func deleteGPSCalibration(submissionId: String) async throws {
+        let db = Firestore.firestore()
+        try await db.collection("coordinate_submissions").document(submissionId).delete()
+    }
+
+    /// Deletes a pending mountain submission.
+    func deleteMountain(mountainId: String) async throws {
+        let db = Firestore.firestore()
+        try await db.collection("mountains").document(mountainId).delete()
+        if let idx = allPeaks.firstIndex(where: { $0.id == mountainId }) {
+            allPeaks.remove(at: idx)
+        }
+        objectWillChange.send()
+    }
+    
+    /// Updates a pending custom mountain.
+    func updateCustomMountain(_ mountain: Mountain) async throws {
+        let db = Firestore.firestore()
+        mountain.updatedAt = Date()
+        try db.collection("mountains").document(mountain.id).setData(from: mountain)
+        if let idx = allPeaks.firstIndex(where: { $0.id == mountain.id }) {
+            allPeaks[idx] = mountain
+        }
+        try? modelContext?.save()
+        objectWillChange.send()
+    }
+
     /// Approves a submitted mountain, making it live on the public mountain list.
     func approveMountain(_ mountain: Mountain) async throws {
         mountain.isApproved = true
@@ -255,58 +330,65 @@ class MountainsViewModel: ObservableObject {
         allPeaks.removeAll { $0.id == mountain.id }
     }
     
-    /// Approves a proposed GPS coordinate calibration on a mountain.
-    func approveGPS(for mountain: Mountain) async throws {
-        guard let lat = mountain.pendingLatitude, let lon = mountain.pendingLongitude else { return }
-        let newRegion = mountain.pendingRegion ?? mountain.region
+    /// Approves a proposed GPS coordinate calibration.
+    func approveGPS(submission: CoordinateSubmission) async throws {
+        guard let mountain = allPeaks.first(where: { $0.id == submission.mountainId }) else { return }
+        let db = Firestore.firestore()
         
-        mountain.latitude = lat
-        mountain.longitude = lon
-        mountain.region = newRegion
+        // Update mountain
+        mountain.latitude = submission.latitude
+        mountain.longitude = submission.longitude
         mountain.isVerifiedByCommunity = true
-        mountain.communityVerifications += (1 + mountain.pendingVerifications)
-        mountain.pendingLatitude = nil
-        mountain.pendingLongitude = nil
-        mountain.pendingRegion = nil
-        mountain.pendingContributorEmail = nil
-        mountain.pendingContributorName = nil
-        mountain.pendingVerifications = 0
-        mountain.pendingVerifierEmails = []
+        mountain.communityVerifications += 1
+        mountain.pendingCalibrationsCount = max(0, mountain.pendingCalibrationsCount - 1)
         mountain.updatedAt = Date()
-        
-        let db = Firestore.firestore()
         try db.collection("mountains").document(mountain.id).setData(from: mountain)
+        
+        // Update submission
+        var updatedSubmission = submission
+        updatedSubmission.status = .approved
+        updatedSubmission.processedAt = Date()
+        if let subId = submission.id {
+            try db.collection("coordinate_submissions").document(subId).setData(from: updatedSubmission)
+        }
+        
+        // Auto-duplicate others for this mountain
+        let snapshot = try await db.collection("coordinate_submissions")
+            .whereField("mountainId", isEqualTo: mountain.id)
+            .whereField("status", isEqualTo: SubmissionStatus.pending.rawValue)
+            .getDocuments()
+            
+        for doc in snapshot.documents {
+            if doc.documentID != submission.id {
+                try await doc.reference.updateData(["status": SubmissionStatus.duplicate.rawValue, "processedAt": FieldValue.serverTimestamp()])
+            }
+        }
+        
+        // Ensure count is 0
+        mountain.pendingCalibrationsCount = 0
+        try db.collection("mountains").document(mountain.id).setData(from: mountain)
+        
         try? modelContext?.save()
         objectWillChange.send()
     }
     
-    /// Declines a proposed GPS coordinate calibration without modifying existing coordinates.
-    func declineGPS(for mountain: Mountain) async throws {
-        mountain.pendingLatitude = nil
-        mountain.pendingLongitude = nil
-        mountain.pendingRegion = nil
-        mountain.pendingContributorEmail = nil
-        mountain.pendingContributorName = nil
-        mountain.pendingVerifications = 0
-        mountain.pendingVerifierEmails = []
-        mountain.updatedAt = Date()
-        
+    /// Declines a proposed GPS coordinate calibration.
+    func declineGPS(submission: CoordinateSubmission) async throws {
         let db = Firestore.firestore()
-        try db.collection("mountains").document(mountain.id).setData(from: mountain)
-        try? modelContext?.save()
-        objectWillChange.send()
-    }
-    
-    /// Confirms and verifies a pending GPS coordinate calibration by another mountaineer.
-    func verifyPendingGPS(for mountain: Mountain, userEmail: String) async throws {
-        guard !mountain.pendingVerifierEmails.contains(userEmail), mountain.pendingContributorEmail != userEmail else { return }
-        mountain.pendingVerifierEmails.append(userEmail)
-        mountain.pendingVerifications = mountain.pendingVerifierEmails.count
-        mountain.updatedAt = Date()
         
-        let db = Firestore.firestore()
-        try db.collection("mountains").document(mountain.id).setData(from: mountain)
-        try? modelContext?.save()
+        var updatedSubmission = submission
+        updatedSubmission.status = .rejected
+        updatedSubmission.processedAt = Date()
+        if let subId = submission.id {
+            try db.collection("coordinate_submissions").document(subId).setData(from: updatedSubmission)
+        }
+        
+        if let mountain = allPeaks.first(where: { $0.id == submission.mountainId }) {
+            mountain.pendingCalibrationsCount = max(0, mountain.pendingCalibrationsCount - 1)
+            mountain.updatedAt = Date()
+            try db.collection("mountains").document(mountain.id).setData(from: mountain)
+            try? modelContext?.save()
+        }
         objectWillChange.send()
     }
     

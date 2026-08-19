@@ -75,13 +75,7 @@ final class Mountain: Identifiable, Hashable {
     
     // MARK: - Pending Crowdsourced GPS Calibration
     
-    var pendingLatitude: Double?
-    var pendingLongitude: Double?
-    var pendingRegion: String?
-    var pendingContributorEmail: String?
-    var pendingContributorName: String? = nil
-    var pendingVerifications: Int = 0
-    var pendingVerifierEmails: [String] = []
+    var pendingCalibrationsCount: Int = 0
     
     // MARK: - Contributor Display Helpers
     
@@ -90,13 +84,6 @@ final class Mountain: Identifiable, Hashable {
             return name
         }
         return contributorEmail?.formattedFirstName
-    }
-    
-    var displayPendingContributorName: String? {
-        if let name = pendingContributorName, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return name
-        }
-        return pendingContributorEmail?.formattedFirstName
     }
     
     // MARK: - Delta-Sync & Crowdsourced GPS Verification Metadata
@@ -133,13 +120,7 @@ final class Mountain: Identifiable, Hashable {
         updatedAt: Date = Date(),
         isVerifiedByCommunity: Bool = false,
         communityVerifications: Int = 0,
-        pendingLatitude: Double? = nil,
-        pendingLongitude: Double? = nil,
-        pendingRegion: String? = nil,
-        pendingContributorEmail: String? = nil,
-        pendingContributorName: String? = nil,
-        pendingVerifications: Int = 0,
-        pendingVerifierEmails: [String] = []
+        pendingCalibrationsCount: Int = 0
     ) {
         self.id = id
         self.name = name
@@ -158,13 +139,7 @@ final class Mountain: Identifiable, Hashable {
         self.updatedAt = updatedAt
         self.isVerifiedByCommunity = isVerifiedByCommunity
         self.communityVerifications = communityVerifications
-        self.pendingLatitude = pendingLatitude
-        self.pendingLongitude = pendingLongitude
-        self.pendingRegion = pendingRegion
-        self.pendingContributorEmail = pendingContributorEmail
-        self.pendingContributorName = pendingContributorName
-        self.pendingVerifications = pendingVerifications
-        self.pendingVerifierEmails = pendingVerifierEmails
+        self.pendingCalibrationsCount = pendingCalibrationsCount
     }
     
     // MARK: - Hashable & Equatable (By ID)
@@ -223,8 +198,7 @@ extension Mountain: Codable {
         case difficultyLevel, trailClass
         case isApproved, contributorId, contributorEmail, contributorName
         case updatedAt, isVerifiedByCommunity, communityVerifications
-        case pendingLatitude, pendingLongitude, pendingRegion, pendingContributorEmail, pendingContributorName
-        case pendingVerifications, pendingVerifierEmails
+        case pendingCalibrationsCount
     }
     
     convenience init(from decoder: Decoder) throws {
@@ -258,13 +232,7 @@ extension Mountain: Codable {
         
         let isVerifiedByCommunity = try container.decodeIfPresent(Bool.self, forKey: .isVerifiedByCommunity) ?? false
         let communityVerifications = try container.decodeIfPresent(Int.self, forKey: .communityVerifications) ?? 0
-        let pendingLatitude = try? Mountain.decodeCoordinate(from: container, forKey: .pendingLatitude, isLatitude: true)
-        let pendingLongitude = try? Mountain.decodeCoordinate(from: container, forKey: .pendingLongitude, isLatitude: false)
-        let pendingRegion = try? container.decodeIfPresent(String.self, forKey: .pendingRegion)
-        let pendingContributorEmail = try? container.decodeIfPresent(String.self, forKey: .pendingContributorEmail)
-        let pendingContributorName = try? container.decodeIfPresent(String.self, forKey: .pendingContributorName)
-        let pendingVerifications = try container.decodeIfPresent(Int.self, forKey: .pendingVerifications) ?? 0
-        let pendingVerifierEmails = try container.decodeIfPresent([String].self, forKey: .pendingVerifierEmails) ?? []
+        let pendingCalibrationsCount = try container.decodeIfPresent(Int.self, forKey: .pendingCalibrationsCount) ?? 0
         
         self.init(
             id: id,
@@ -284,13 +252,7 @@ extension Mountain: Codable {
             updatedAt: updatedAt,
             isVerifiedByCommunity: isVerifiedByCommunity,
             communityVerifications: communityVerifications,
-            pendingLatitude: pendingLatitude,
-            pendingLongitude: pendingLongitude,
-            pendingRegion: pendingRegion,
-            pendingContributorEmail: pendingContributorEmail,
-            pendingContributorName: pendingContributorName,
-            pendingVerifications: pendingVerifications,
-            pendingVerifierEmails: pendingVerifierEmails
+            pendingCalibrationsCount: pendingCalibrationsCount
         )
     }
     
@@ -313,13 +275,7 @@ extension Mountain: Codable {
         try container.encode(updatedAt, forKey: .updatedAt)
         try container.encode(isVerifiedByCommunity, forKey: .isVerifiedByCommunity)
         try container.encode(communityVerifications, forKey: .communityVerifications)
-        try container.encodeIfPresent(pendingLatitude, forKey: .pendingLatitude)
-        try container.encodeIfPresent(pendingLongitude, forKey: .pendingLongitude)
-        try container.encodeIfPresent(pendingRegion, forKey: .pendingRegion)
-        try container.encodeIfPresent(pendingContributorEmail, forKey: .pendingContributorEmail)
-        try container.encodeIfPresent(pendingContributorName, forKey: .pendingContributorName)
-        try container.encode(pendingVerifications, forKey: .pendingVerifications)
-        try container.encode(pendingVerifierEmails, forKey: .pendingVerifierEmails)
+        try container.encode(pendingCalibrationsCount, forKey: .pendingCalibrationsCount)
     }
     
     private static func decodeCoordinate(

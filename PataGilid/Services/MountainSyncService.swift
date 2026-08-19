@@ -81,13 +81,7 @@ class MountainSyncService {
                         existing.updatedAt = remotePeak.updatedAt
                         existing.isVerifiedByCommunity = remotePeak.isVerifiedByCommunity
                         existing.communityVerifications = remotePeak.communityVerifications
-                        existing.pendingLatitude = remotePeak.pendingLatitude
-                        existing.pendingLongitude = remotePeak.pendingLongitude
-                        existing.pendingRegion = remotePeak.pendingRegion
-                        existing.pendingContributorEmail = remotePeak.pendingContributorEmail
-                        existing.pendingContributorName = remotePeak.pendingContributorName
-                        existing.pendingVerifications = remotePeak.pendingVerifications
-                        existing.pendingVerifierEmails = remotePeak.pendingVerifierEmails
+                        existing.pendingCalibrationsCount = remotePeak.pendingCalibrationsCount
                     } else {
                         // Insert brand new or initially synced peak into SwiftData
                         modelContext.insert(remotePeak)

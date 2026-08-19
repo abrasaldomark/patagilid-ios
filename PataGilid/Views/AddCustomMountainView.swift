@@ -20,7 +20,10 @@ struct AddCustomMountainView: View {
     @EnvironmentObject var mountainsViewModel: MountainsViewModel
     
     /// Callback when a new mountain is successfully created or selected from suggestions
-    var onMountainSubmitted: (Mountain, Bool, Bool) -> Void
+    var onMountainSubmitted: ((Mountain, Bool, Bool) -> Void)?
+    
+    /// Optional mountain to edit instead of creating a new one
+    var editingMountain: Mountain? = nil
     
     // Form State
     @State private var mountainName: String = ""
@@ -130,11 +133,19 @@ struct AddCustomMountainView: View {
                 descriptionSection
             }
             .onAppear {
-                if region.isEmpty, let first = availableRegionsForSelectedIsland.first {
+                if let mountain = editingMountain {
+                    mountainName = mountain.name
+                    elevationText = String(mountain.elevationMASL)
+                    region = mountain.region
+                    selectedIslandGroup = mountain.islandGroup
+                    selectedDifficulty = mountain.difficultyLevel
+                    selectedClass = mountain.trailClass
+                    descriptionText = mountain.descriptionText
+                } else if region.isEmpty, let first = availableRegionsForSelectedIsland.first {
                     region = first
                 }
             }
-            .navigationTitle("Contribute Mountain")
+            .navigationTitle(editingMountain != nil ? "Edit Mountain" : "Contribute Mountain")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -246,6 +257,7 @@ struct AddCustomMountainView: View {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             
         let isDuplicate = mountainsViewModel.publicPeaks.contains { peak in
+            if editingMountain?.id == peak.id { return false }
             let cleanDbName = peak.name
                 .replacingOccurrences(of: "Mt.", with: "", options: .caseInsensitive)
                 .replacingOccurrences(of: "Mount", with: "", options: .caseInsensitive)
@@ -274,24 +286,41 @@ struct AddCustomMountainView: View {
         
         Task {
             do {
-                // Add to firestore and local sync
-                let newMountain = try await mountainsViewModel.submitCustomMountain(
-                    name: mountainName,
-                    elevationMASL: elevation,
-                    region: region,
-                    islandGroup: selectedIslandGroup,
-                    difficultyLevel: selectedDifficulty,
-                    trailClass: selectedClass,
-                    contributorId: userId,
-                    contributorEmail: authViewModel.currentUser?.email,
-                    contributorName: authViewModel.currentUser?.displayName?.components(separatedBy: " ").first?.capitalized ?? authViewModel.currentUser?.email?.formattedFirstName,
-                    description: descriptionText.isEmpty ? "Community contributed hiking trail and mountain summit." : descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
-                )
-                
-                await MainActor.run {
-                    submitState.isSubmitting = false
-                    onMountainSubmitted(newMountain, logHike, navigateToMountain)
-                    dismiss()
+                if let editingMountain = editingMountain {
+                    editingMountain.name = mountainName
+                    editingMountain.elevationMASL = elevation
+                    editingMountain.region = region
+                    editingMountain.islandGroup = selectedIslandGroup
+                    editingMountain.difficultyLevel = selectedDifficulty
+                    editingMountain.trailClass = selectedClass
+                    editingMountain.descriptionText = descriptionText.isEmpty ? "Community contributed hiking trail and mountain summit." : descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    
+                    try await mountainsViewModel.updateCustomMountain(editingMountain)
+                    
+                    await MainActor.run {
+                        submitState.isSubmitting = false
+                        onMountainSubmitted?(editingMountain, logHike, navigateToMountain)
+                        dismiss()
+                    }
+                } else {
+                    let newMountain = try await mountainsViewModel.submitCustomMountain(
+                        name: mountainName,
+                        elevationMASL: elevation,
+                        region: region,
+                        islandGroup: selectedIslandGroup,
+                        difficultyLevel: selectedDifficulty,
+                        trailClass: selectedClass,
+                        contributorId: userId,
+                        contributorEmail: authViewModel.currentUser?.email,
+                        contributorName: authViewModel.currentUser?.displayName?.components(separatedBy: " ").first?.capitalized ?? authViewModel.currentUser?.email?.formattedFirstName,
+                        description: descriptionText.isEmpty ? "Community contributed hiking trail and mountain summit." : descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    )
+                    
+                    await MainActor.run {
+                        submitState.isSubmitting = false
+                        onMountainSubmitted?(newMountain, logHike, navigateToMountain)
+                        dismiss()
+                    }
                 }
             } catch {
                 await MainActor.run {
@@ -349,7 +378,7 @@ struct AddCustomMountainView: View {
                 
                 ForEach(similarPeaks) { peak in
                     Button {
-                        onMountainSubmitted(peak, false, true)
+                        onMountainSubmitted?(peak, false, true)
                         dismiss()
                     } label: {
                         HStack {

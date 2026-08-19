@@ -94,6 +94,17 @@ struct CoordinateSelectionView: View {
                         searchPredictions = []
                         tempCoordinate = newCoord
                         currentPlaceName = nil
+                        
+                        // Reverse geocode to show island group and region
+                        LocationHelper.reverseGeocode(coordinate: newCoord) { _, region, islandGroup in
+                            DispatchQueue.main.async {
+                                if let ig = islandGroup, let r = region {
+                                    self.currentPlaceName = "\(ig), \(r)"
+                                } else if let r = region {
+                                    self.currentPlaceName = r
+                                }
+                            }
+                        }
                     },
                     cameraTrigger: cameraTrigger
                 )
@@ -177,6 +188,14 @@ struct CoordinateSelectionView: View {
                 // Confirmation Card
                 if let temp = tempCoordinate {
                     VStack(spacing: 12) {
+                        if let name = currentPlaceName {
+                            Text(name)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        
                         Text(String(format: "Selected: %.5f, %.5f", temp.latitude, temp.longitude))
                             .font(.caption)
                             .fontWeight(.medium)

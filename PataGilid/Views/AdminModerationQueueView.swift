@@ -66,14 +66,14 @@ struct AdminModerationQueueView: View {
                                 .listStyle(.insetGrouped)
                             }
                         } else {
-                            if mountainsViewModel.pendingGPSPeaks.isEmpty {
+                            if mountainsViewModel.pendingGpsSubmissions.isEmpty {
                                 emptyTabMessage(title: "No GPS Calibrations", message: "There are no GPS calibrations pending review.")
                             } else {
                                 List {
-                                    Section(header: Text("Pending GPS Calibrations (\(mountainsViewModel.pendingGPSPeaks.count))"),
+                                    Section(header: Text("Pending GPS Calibrations (\(mountainsViewModel.pendingGpsSubmissions.count))"),
                                             footer: Text("Approved coordinates immediately calibrate the official mountain entry and grant a verified community badge nationwide via Delta-Sync.")) {
-                                        ForEach(mountainsViewModel.pendingGPSPeaks) { mountain in
-                                            gpsSubmissionCard(for: mountain)
+                                        ForEach(mountainsViewModel.pendingGpsSubmissions) { submission in
+                                            gpsSubmissionCard(for: submission)
                                         }
                                     }
                                 }
@@ -295,17 +295,14 @@ struct AdminModerationQueueView: View {
     }
     
     @ViewBuilder
-    private func gpsSubmissionCard(for mountain: Mountain) -> some View {
+    private func gpsSubmissionCard(for submission: CoordinateSubmission) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(mountain.name)
+                    Text(submission.mountainName)
                         .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
-                    Text("📍 \(mountain.pendingRegion ?? mountain.region)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 }
                 Spacer()
                 Text("GPS Proposal")
@@ -322,13 +319,13 @@ struct AdminModerationQueueView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "mappin.circle.fill")
                         .foregroundColor(.orange)
-                    Text(String(format: "%.6f, %.6f", mountain.pendingLatitude ?? 0.0, mountain.pendingLongitude ?? 0.0))
+                    Text(String(format: "%.6f, %.6f", submission.latitude, submission.longitude))
                         .font(.subheadline)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
                 }
                 
-                if let contributorName = mountain.displayPendingContributorName {
+                if let contributorName = submission.contributorName {
                     HStack(spacing: 4) {
                         Image(systemName: "person.circle.fill")
                             .foregroundColor(.purple)
@@ -340,46 +337,35 @@ struct AdminModerationQueueView: View {
                     }
                     .padding(.top, 2)
                 }
-                
-                if mountain.pendingVerifications > 0 {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.seal.fill")
-                            .foregroundColor(.green)
-                            .font(.caption2)
-                        Text("⭐️ Upvoted by \(mountain.pendingVerifications) community mountaineer\(mountain.pendingVerifications == 1 ? "" : "s")")
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.green)
-                    }
-                    .padding(.top, 2)
-                }
             }
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.secondary.opacity(0.06))
             .cornerRadius(8)
             
-            // View Map Button
-            Button {
-                mountainToViewMap = mountain
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "map.fill")
-                    Text("View Map")
+            // View Map Button (Needs actual mountain object)
+            if let targetMountain = mountainsViewModel.allPeaks.first(where: { $0.id == submission.mountainId }) {
+                Button {
+                    mountainToViewMap = targetMountain
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "map.fill")
+                        Text("View Map (Live Data)")
+                    }
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.secondary.opacity(0.15))
+                    .foregroundColor(.primary)
+                    .cornerRadius(8)
                 }
-                .font(.caption)
-                .fontWeight(.bold)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(Color.secondary.opacity(0.15))
-                .foregroundColor(.primary)
-                .cornerRadius(8)
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
 
             HStack(spacing: 8) {
                 Button {
-                    Task { await handleRejectGPS(mountain) }
+                    Task { await handleRejectGPS(submission) }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "trash.fill")
@@ -396,7 +382,7 @@ struct AdminModerationQueueView: View {
                 .buttonStyle(.plain)
                 
                 Button {
-                    Task { await handleApproveGPS(mountain) }
+                    Task { await handleApproveGPS(submission) }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "checkmark.circle.fill")
@@ -451,21 +437,21 @@ struct AdminModerationQueueView: View {
         isProcessing = false
     }
     
-    private func handleApproveGPS(_ mountain: Mountain) async {
+    private func handleApproveGPS(_ submission: CoordinateSubmission) async {
         isProcessing = true
         do {
-            try await mountainsViewModel.approveGPS(for: mountain)
-            actionFeedback = "✅ GPS coordinates for '\(mountain.name)' approved & broadcasted nationwide via Delta-Sync!"
+            try await mountainsViewModel.approveGPS(submission: submission)
+            actionFeedback = "✅ GPS coordinates for '\(submission.mountainName)' approved!"
         } catch {
             actionFeedback = "⚠️ Failed to approve GPS: \(error.localizedDescription)"
         }
         isProcessing = false
     }
     
-    private func handleRejectGPS(_ mountain: Mountain) async {
+    private func handleRejectGPS(_ submission: CoordinateSubmission) async {
         isProcessing = true
         do {
-            try await mountainsViewModel.declineGPS(for: mountain)
+            try await mountainsViewModel.declineGPS(submission: submission)
             actionFeedback = "🗑️ GPS submission rejected."
         } catch {
             actionFeedback = "⚠️ Failed to reject GPS: \(error.localizedDescription)"

@@ -187,75 +187,79 @@ struct CoordinateSelectionView: View {
                 .padding(.top, 12)
                 .frame(maxHeight: .infinity, alignment: .top)
                 
-                // Confirmation Card
-                if let temp = tempCoordinate {
-                    VStack(spacing: 12) {
-                        if let name = currentPlaceName {
-                            Text(name)
+                // Bottom Overlays
+                VStack(spacing: 16) {
+                    if showInstructions {
+                        HStack(spacing: 16) {
+                            Image(systemName: "hand.tap.fill")
+                                .font(.title2)
+                                .foregroundColor(.gliderBlue)
+                            
+                            Text("Tap anywhere on the map to place a pin on the mountain's summit.")
                                 .font(.subheadline)
-                                .fontWeight(.semibold)
                                 .foregroundColor(.primary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                            
+                            Button {
+                                withAnimation { showInstructions = false }
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.secondary)
+                            }
                         }
-                        
-                        Text(String(format: "Selected: %.5f, %.5f", temp.latitude, temp.longitude))
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        Button {
-                            selectedPlaceName = currentPlaceName
-                            selectedCoordinate = temp
-                            onConfirm?(temp)
-                            dismiss()
-                        } label: {
-                            Text("Confirm Location")
-                                .font(.subheadline)
-                                .fontWeight(.bold)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(Color.gliderBlue)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 20)
+                        .background(Color(.systemBackground))
+                        .cornerRadius(16)
+                        .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                        .padding(.horizontal, 20)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
-                    .padding(16)
-                    .background(.thickMaterial)
-                    .cornerRadius(18)
-                    .shadow(color: .black.opacity(0.25), radius: 10, x: 0, y: 5)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 24)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .animation(.spring(), value: tempCoordinate != nil)
-                } else if showInstructions {
-                    HStack(spacing: 16) {
-                        Image(systemName: "hand.tap.fill")
-                            .font(.title2)
-                            .foregroundColor(.gliderBlue)
-                        
-                        Text("Tap anywhere on the map to place a pin on the mountain's summit.")
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        
-                        Button {
-                            withAnimation { showInstructions = false }
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.title3)
+                    
+                    if let temp = tempCoordinate {
+                        VStack(spacing: 12) {
+                            if let name = currentPlaceName {
+                                Text(name)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            
+                            Text(String(format: "Selected: %.5f, %.5f", temp.latitude, temp.longitude))
+                                .font(.caption)
+                                .fontWeight(.medium)
                                 .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            Button {
+                                selectedPlaceName = currentPlaceName
+                                selectedCoordinate = temp
+                                onConfirm?(temp)
+                                dismiss()
+                            } label: {
+                                Text("Confirm Location")
+                                    .font(.subheadline)
+                                    .fontWeight(.bold)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(Color.gliderBlue)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
+                            }
                         }
+                        .padding(16)
+                        .background(.thickMaterial)
+                        .cornerRadius(18)
+                        .shadow(color: .black.opacity(0.25), radius: 10, x: 0, y: 5)
+                        .padding(.horizontal, 16)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
-                    .padding(.vertical, 16)
-                    .padding(.horizontal, 20)
-                    .background(Color(.systemBackground))
-                    .cornerRadius(16)
-                    .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 32)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
+                .padding(.bottom, 24)
+                .animation(.spring(), value: tempCoordinate != nil)
+                .animation(.spring(), value: showInstructions)
             }
             .onAppear {
                 if let initial = selectedCoordinate {

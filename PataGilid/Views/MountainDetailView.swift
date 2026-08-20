@@ -275,13 +275,15 @@ struct MountainDetailView: View {
                                 .foregroundColor(.gliderBlue)
                         }
                     }
-                    Button {
-                        logSessionId = UUID()
-                        showingLogModal = true
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title3)
-                            .foregroundColor(.gliderBlue)
+                    if mountain.isPubliclyApproved {
+                        Button {
+                            logSessionId = UUID()
+                            showingLogModal = true
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(.gliderBlue)
+                        }
                     }
                 }
             }

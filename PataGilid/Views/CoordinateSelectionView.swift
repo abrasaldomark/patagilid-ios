@@ -16,6 +16,9 @@ struct CoordinateSelectionView: View {
     @Binding var selectedCoordinate: CLLocationCoordinate2D?
     @Binding var selectedPlaceName: String?
     
+    // Optional callback when confirm button is tapped
+    var onConfirm: ((CLLocationCoordinate2D) -> Void)? = nil
+    
     // Internal state for the map center and the currently dragged pin
     @State private var center: CLLocationCoordinate2D = CLLocationCoordinate2D(latitude: 12.8797, longitude: 121.7740) // Default PH Center
     @State private var distance: CLLocationDistance = 1_200_000
@@ -80,9 +83,8 @@ struct CoordinateSelectionView: View {
     }
     
     var body: some View {
-        NavigationStack {
-            ZStack(alignment: .bottom) {
-                GoogleMapView(
+        ZStack(alignment: .bottom) {
+            GoogleMapView(
                     centerCoordinate: center,
                     distance: distance,
                     annotationCoordinate: tempCoordinate,
@@ -205,6 +207,7 @@ struct CoordinateSelectionView: View {
                         Button {
                             selectedPlaceName = currentPlaceName
                             selectedCoordinate = temp
+                            onConfirm?(temp)
                             dismiss()
                         } label: {
                             Text("Confirm Location")
@@ -254,16 +257,6 @@ struct CoordinateSelectionView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .navigationTitle("Select Summit Location")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(.red)
-                }
-            }
             .onAppear {
                 if let initial = selectedCoordinate {
                     center = initial
@@ -273,6 +266,14 @@ struct CoordinateSelectionView: View {
                     cameraTrigger = UUID()
                 }
             }
-        }
+            .onChange(of: selectedCoordinate) { _, newValue in
+                if let newValue = newValue {
+                    center = newValue
+                    tempCoordinate = newValue
+                    currentPlaceName = selectedPlaceName
+                    distance = 5000
+                    cameraTrigger = UUID()
+                }
+            }
     }
 }

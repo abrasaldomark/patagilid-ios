@@ -27,7 +27,7 @@ struct UserContributionsView: View {
                     .getDocuments()
                 let subs = snapshot.documents.compactMap { try? $0.data(as: CoordinateSubmission.self) }
                 await MainActor.run {
-                    userGpsSubmissions = subs.sorted(by: { $0.createdAt > $1.createdAt })
+                    userGpsSubmissions = subs.sorted(by: { $0.displayDate > $1.displayDate })
                 }
             } catch {
                 print("Error fetching user GPS submissions: \(error)")
@@ -214,7 +214,7 @@ struct UserContributionsView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(submission.mountainName)
+                    Text(submission.mountainName ?? "GPS Calibration (\(submission.region ?? "Unknown"))")
                         .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
@@ -254,29 +254,26 @@ struct GPSCalibrationEditWrapper: View {
     
     var body: some View {
         NavigationView {
-            CoordinateSelectionView(selectedCoordinate: $tempCoordinate, selectedPlaceName: $tempPlaceName)
-                .onAppear {
-                    tempCoordinate = CLLocationCoordinate2D(latitude: gps.latitude, longitude: gps.longitude)
+            CoordinateSelectionView(
+                selectedCoordinate: $tempCoordinate,
+                selectedPlaceName: $tempPlaceName,
+                onConfirm: { newCoord in
+                    onSave(newCoord)
+                    isPresented = false
                 }
-                .navigationTitle("Edit GPS Calibration")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Cancel") {
-                            isPresented = false
-                        }
-                    }
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Save") {
-                            if let newCoord = tempCoordinate {
-                                onSave(newCoord)
-                            }
-                            isPresented = false
-                        }
-                        .fontWeight(.bold)
-                        .disabled(tempCoordinate == nil)
+            )
+            .onAppear {
+                tempCoordinate = CLLocationCoordinate2D(latitude: gps.latitude, longitude: gps.longitude)
+            }
+            .navigationTitle("Edit GPS Calibration")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        isPresented = false
                     }
                 }
+            }
         }
     }
 }

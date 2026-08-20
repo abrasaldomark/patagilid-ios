@@ -29,6 +29,10 @@ class MountainsViewModel: ObservableObject {
     @Published var isDownloading: Bool = false
     @Published var downloadProgress: Double = 0.0
     
+    init() {
+        Self.shared = self
+    }
+    
     static weak var shared: MountainsViewModel?
     
     private var modelContext: ModelContext?
@@ -124,9 +128,7 @@ class MountainsViewModel: ObservableObject {
         return result
     }
     
-    init() {
-        Self.shared = self
-    }
+
     
     // MARK: - SwiftData & Delta-Sync Integration
     
@@ -166,19 +168,37 @@ class MountainsViewModel: ObservableObject {
         submissionsListener = Firestore.firestore().collection("coordinate_submissions")
             .whereField("status", isEqualTo: SubmissionStatus.pending.rawValue)
             .addSnapshotListener { [weak self] snapshot, error in
-                guard let documents = snapshot?.documents else { return }
-                self?.pendingGpsSubmissions = documents.compactMap { doc -> CoordinateSubmission? in
+                guard let documents = snapshot?.documents, let context = self?.modelContext else { return }
+                
+                let parsed = documents.compactMap { doc -> CoordinateSubmission? in
                     try? doc.data(as: CoordinateSubmission.self)
-                }.sorted(by: { $0.createdAt > $1.createdAt })
+                }
+                
+                // Update SwiftData storage
+                if let existing = try? context.fetch(FetchDescriptor<CoordinateSubmission>()) {
+                    for item in existing {
+                        context.delete(item)
+                    }
+                }
+                
+                for item in parsed {
+                    context.insert(item)
+                }
+                try? context.save()
+                
+                self?.refreshFromSwiftData(in: context)
             }
     }
 
     func refreshFromSwiftData(in context: ModelContext) {
         var descriptor = FetchDescriptor<Mountain>(sortBy: [SortDescriptor(\.name)])
         if let stored = try? context.fetch(descriptor) {
-            var combined = stored
-
-            self.allPeaks = combined
+            self.allPeaks = stored
+        }
+        
+        let gpsDescriptor = FetchDescriptor<CoordinateSubmission>()
+        if let storedGps = try? context.fetch(gpsDescriptor) {
+            self.pendingGpsSubmissions = storedGps.sorted(by: { $0.displayDate > $1.displayDate })
         }
     }
     
@@ -250,14 +270,17 @@ class MountainsViewModel: ObservableObject {
         let db = Firestore.firestore()
         
         let newSubmission = CoordinateSubmission(
+            id: UUID().uuidString,
             mountainId: mountain.id,
             mountainName: mountain.name,
+            region: mountain.region,
             latitude: lat,
             longitude: lon,
             contributorEmail: userEmail,
             contributorName: userName,
             status: .pending,
-            createdAt: Date()
+            createdAt: Date(),
+            submittedAt: Date()
         )
         
         let ref = db.collection("coordinate_submissions").document()
@@ -277,7 +300,8 @@ class MountainsViewModel: ObservableObject {
         try await ref.updateData([
             "latitude": lat,
             "longitude": lon,
-            "createdAt": Date()
+            "createdAt": Date(),
+            "submittedAt": Date()
         ])
     }
 
@@ -287,11 +311,15 @@ class MountainsViewModel: ObservableObject {
         try await db.collection("coordinate_submissions").document(submissionId).delete()
     }
 
-    /// Deletes a pending mountain submission.
     func deleteMountain(mountainId: String) async throws {
         let db = Firestore.firestore()
         try await db.collection("mountains").document(mountainId).delete()
         if let idx = allPeaks.firstIndex(where: { $0.id == mountainId }) {
+            let mountain = allPeaks[idx]
+            if let context = modelContext {
+                context.delete(mountain)
+                try? context.save()
+            }
             allPeaks.remove(at: idx)
         }
         objectWillChange.send()
@@ -348,9 +376,8 @@ class MountainsViewModel: ObservableObject {
         var updatedSubmission = submission
         updatedSubmission.status = .approved
         updatedSubmission.processedAt = Date()
-        if let subId = submission.id {
-            try db.collection("coordinate_submissions").document(subId).setData(from: updatedSubmission)
-        }
+        let subId = submission.id
+        try db.collection("coordinate_submissions").document(subId).setData(from: updatedSubmission)
         
         // Auto-duplicate others for this mountain
         let snapshot = try await db.collection("coordinate_submissions")
@@ -379,9 +406,8 @@ class MountainsViewModel: ObservableObject {
         var updatedSubmission = submission
         updatedSubmission.status = .rejected
         updatedSubmission.processedAt = Date()
-        if let subId = submission.id {
-            try db.collection("coordinate_submissions").document(subId).setData(from: updatedSubmission)
-        }
+        let subId = submission.id
+        try db.collection("coordinate_submissions").document(subId).setData(from: updatedSubmission)
         
         if let mountain = allPeaks.first(where: { $0.id == submission.mountainId }) {
             mountain.pendingCalibrationsCount = max(0, mountain.pendingCalibrationsCount - 1)

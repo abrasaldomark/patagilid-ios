@@ -19,7 +19,7 @@ struct MainTabView: View {
     @State private var showDonationSheet: Bool = false
     @State private var showMyContributions: Bool = false
     @State private var showSponsors: Bool = false
-    @AppStorage("selectedMainTab") private var selectedTab: Int = 0
+    @State private var selectedTab: Int = 0
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = true
     
     var body: some View {
@@ -30,9 +30,6 @@ struct MainTabView: View {
                     Label("Mountains", systemImage: "mountain.2.fill")
                 }
                 .tag(0)
-                .task {
-                    await mountainsViewModel.synchronize(in: modelContext)
-                }
 
             // Tab 2: Summit Logs
             SummitLogsView()
@@ -44,7 +41,7 @@ struct MainTabView: View {
             // Tab 3: My Lists
             MountainListsView()
                 .tabItem {
-                    Label("Lists", systemImage: "list.star")
+                    Label("Lists", systemImage: "list.bullet")
                 }
                 .tag(2)
             NavigationStack {
@@ -234,6 +231,9 @@ struct MainTabView: View {
                 Label("Profile", systemImage: "person.crop.circle.fill")
             }
             .tag(3)
+        }
+        .task {
+            await mountainsViewModel.synchronize(in: modelContext)
         }
         .tint(.gliderBlue)
         .environmentObject(authViewModel)

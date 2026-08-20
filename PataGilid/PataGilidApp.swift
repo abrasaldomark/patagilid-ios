@@ -53,7 +53,7 @@ struct PataGilidApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [Mountain.self, MountainList.self, HikeLog.self])
+        .modelContainer(for: [Mountain.self, MountainList.self, HikeLog.self, CoordinateSubmission.self])
     }
 }
 

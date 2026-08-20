@@ -47,6 +47,7 @@ struct AddCustomMountainView: View {
     @State private var errorMessage: String?
     @State private var showSuccessAlert: Bool = false
     @State private var showInfoCard: Bool = true
+    @State private var hasInitializedCoordinateFromEdit: Bool = false
     
     let difficulties = ["1/9 (Minor)", "2/9 (Minor)", "3/9 (Minor)", "4/9 (Minor)", "5/9 (Major)", "6/9 (Major)", "7/9 (Major)", "8/9 (Major)", "9/9 (Major)"]
     let trailClasses = ["Class 1", "Class 1-2", "Class 2", "Class 2-3", "Class 3", "Class 4", "Class 5 (Technical)"]
@@ -141,6 +142,11 @@ struct AddCustomMountainView: View {
                     selectedDifficulty = mountain.difficultyLevel
                     selectedClass = mountain.trailClass
                     descriptionText = mountain.descriptionText
+                    
+                    if let lat = mountain.latitude, let lon = mountain.longitude, lat != 0.0, lon != 0.0 {
+                        hasInitializedCoordinateFromEdit = true
+                        selectedCoordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+                    }
                 } else if region.isEmpty, let first = availableRegionsForSelectedIsland.first {
                     region = first
                 }
@@ -188,7 +194,19 @@ struct AddCustomMountainView: View {
                 }
             }
             .fullScreenCover(isPresented: $isMapPresented) {
-                CoordinateSelectionView(selectedCoordinate: $selectedCoordinate, selectedPlaceName: $selectedPlaceName)
+                NavigationStack {
+                    CoordinateSelectionView(selectedCoordinate: $selectedCoordinate, selectedPlaceName: $selectedPlaceName)
+                        .navigationTitle("Select Summit Location")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                Button("Cancel") {
+                                    isMapPresented = false
+                                }
+                                .foregroundColor(.red)
+                            }
+                        }
+                }
             }
             .alert(errorMessage?.contains("already on PataGilid") == true ? "Teka, sandali!" : "Notice", isPresented: Binding<Bool>(
                 get: { errorMessage != nil },
@@ -200,6 +218,12 @@ struct AddCustomMountainView: View {
             }
             .onChange(of: selectedCoordinate) { _, newCoord in
                 guard let newCoord = newCoord else { return }
+                
+                // Skip reverse geocoding if this coordinate change was just the initial load from an editing mountain
+                if hasInitializedCoordinateFromEdit {
+                    hasInitializedCoordinateFromEdit = false
+                    return
+                }
                 
                 if let placeName = selectedPlaceName, !placeName.isEmpty {
                     self.mountainName = placeName
@@ -463,8 +487,10 @@ struct AddCustomMountainView: View {
             .pickerStyle(.segmented)
             .padding(.vertical, 4)
             .onChange(of: selectedIslandGroup) { _ in
-                if let first = availableRegionsForSelectedIsland.first {
-                    region = first
+                if !availableRegionsForSelectedIsland.contains(region) {
+                    if let first = availableRegionsForSelectedIsland.first {
+                        region = first
+                    }
                 }
             }
             

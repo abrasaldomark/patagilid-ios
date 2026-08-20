@@ -299,7 +299,7 @@ struct AdminModerationQueueView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(submission.mountainName)
+                    Text(submission.mountainName ?? "GPS Calibration (\(submission.region ?? "Unknown"))")
                         .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
@@ -441,7 +441,7 @@ struct AdminModerationQueueView: View {
         isProcessing = true
         do {
             try await mountainsViewModel.approveGPS(submission: submission)
-            actionFeedback = "✅ GPS coordinates for '\(submission.mountainName)' approved!"
+            actionFeedback = "✅ GPS coordinates for '\(submission.mountainName ?? "mountain")' approved!"
         } catch {
             actionFeedback = "⚠️ Failed to approve GPS: \(error.localizedDescription)"
         }

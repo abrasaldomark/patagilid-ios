@@ -116,16 +116,16 @@ class LocationHelper {
                 return ("MIMAROPA – Southwestern Tagalog Region", .luzon)
             } else if searchString.contains("bicol") || searchString.contains("albay") || searchString.contains("camarines") || searchString.contains("catanduanes") || searchString.contains("masbate") || searchString.contains("sorsogon") {
                 return ("Region 5 – Bicol Region", .luzon)
-            } else if searchString.contains("cordillera") || searchString.contains("abra") || searchString.contains("apayao") || searchString.contains("benguet") || searchString.contains("ifugao") || searchString.contains("kalinga") || searchString.contains("mountain province") || searchString.contains("car") {
+            } else if searchString.contains("cordillera") || searchString.contains("abra") || searchString.contains("apayao") || searchString.contains("benguet") || searchString.contains("ifugao") || searchString.contains("kalinga") || searchString.contains("mountain province") || searchString.contains(" car ") || searchString.hasPrefix("car ") || searchString.hasSuffix(" car") || searchString == "car" {
                 return ("CAR – Cordillera Administrative Region", .luzon)
-            } else if searchString.contains("ncr") || searchString.contains("national capital") || searchString.contains("manila") {
+            } else if searchString.contains(" ncr ") || searchString.hasPrefix("ncr ") || searchString.hasSuffix(" ncr") || searchString == "ncr" || searchString.contains("national capital") || searchString.contains("manila") {
                 return ("NCR – National Capital Region (Metro Manila)", .luzon)
             }
             
             // VISAYAS
             else if searchString.contains("western visayas") || searchString.contains("aklan") || searchString.contains("antique") || searchString.contains("capiz") || searchString.contains("guimaras") || searchString.contains("iloilo") {
                 return ("Region 6 – Western Visayas", .visayas)
-            } else if searchString.contains("negros island") || searchString.contains("negros occidental") || searchString.contains("negros oriental") || searchString.contains("siquijor") || searchString.contains("nir") {
+            } else if searchString.contains("negros island") || searchString.contains("negros occidental") || searchString.contains("negros oriental") || searchString.contains("siquijor") || searchString.contains(" nir ") || searchString.hasPrefix("nir ") || searchString.hasSuffix(" nir") || searchString == "nir" {
                 return ("NIR – Negros Island Region", .visayas)
             } else if searchString.contains("central visayas") || searchString.contains("bohol") || searchString.contains("cebu") {
                 return ("Region 7 – Central Visayas", .visayas)

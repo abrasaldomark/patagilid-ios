@@ -9,6 +9,7 @@ import SwiftUI
 import Combine
 import SwiftData
 import FirebaseFirestore
+import CoreLocation
 
 enum PeakSortOrder: String, CaseIterable {
     case highestFirst = "Elevation: High to Low"
@@ -171,7 +172,11 @@ class MountainsViewModel: ObservableObject {
                 guard let documents = snapshot?.documents, let context = self?.modelContext else { return }
                 
                 let parsed = documents.compactMap { doc -> CoordinateSubmission? in
-                    try? doc.data(as: CoordinateSubmission.self)
+                    if let sub = try? doc.data(as: CoordinateSubmission.self) {
+                        sub.id = doc.documentID
+                        return sub
+                    }
+                    return nil
                 }
                 
                 // Update SwiftData storage
@@ -294,15 +299,32 @@ class MountainsViewModel: ObservableObject {
     }
     
     /// Updates a GPS calibration proposal.
-    func updateGPSCalibration(submissionId: String, lat: Double, lon: Double) async throws {
+    func updateGPSCalibration(submissionId: String, lat: Double, lon: Double, region: String? = nil) async throws {
         let db = Firestore.firestore()
         let ref = db.collection("coordinate_submissions").document(submissionId)
-        try await ref.updateData([
+        var data: [String: Any] = [
             "latitude": lat,
             "longitude": lon,
             "createdAt": Date(),
             "submittedAt": Date()
-        ])
+        ]
+        
+        // Always try to determine the correct region for the new coordinates
+        let determinedRegion: String? = await withCheckedContinuation { continuation in
+            LocationHelper.reverseGeocode(coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon)) { name, r, ig in
+                print("Reverse geocode result for \(lat), \(lon): Name: \(name ?? "nil"), Region: \(r ?? "nil"), IslandGroup: \(ig?.rawValue ?? "nil")")
+                continuation.resume(returning: r)
+            }
+        }
+        print("Determined region: \(determinedRegion ?? "nil"), Fallback region: \(region ?? "nil")")
+        
+        if let determinedRegion = determinedRegion {
+            data["region"] = determinedRegion
+        } else if let region = region {
+            data["region"] = region
+        }
+        
+        try await ref.updateData(data)
     }
 
     /// Deletes a GPS calibration proposal.

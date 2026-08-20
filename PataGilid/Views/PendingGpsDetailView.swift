@@ -8,6 +8,7 @@
 import SwiftUI
 import MapKit
 import FirebaseFirestore
+import FirebaseAuth
 
 struct PendingGpsDetailView: View {
     let submissionId: String
@@ -25,10 +26,14 @@ struct PendingGpsDetailView: View {
         Task {
             do {
                 let doc = try await db.collection("coordinate_submissions").document(submissionId).getDocument()
-                let sub = try doc.data(as: CoordinateSubmission.self)
-                await MainActor.run {
-                    self.submission = sub
-                    self.isLoading = false
+                if let sub = try? doc.data(as: CoordinateSubmission.self) {
+                    sub.id = doc.documentID
+                    await MainActor.run {
+                        self.submission = sub
+                        self.isLoading = false
+                    }
+                } else {
+                    await MainActor.run { self.isLoading = false }
                 }
             } catch {
                 print("Error fetching submission: \(error)")
@@ -45,19 +50,16 @@ struct PendingGpsDetailView: View {
                 ProgressView("Loading GPS Calibration...")
             } else if let sub = submission {
                 VStack(spacing: 0) {
-                    Map(position: .constant(.region(MKCoordinateRegion(
-                        center: CLLocationCoordinate2D(latitude: sub.latitude ?? 0.0, longitude: sub.longitude ?? 0.0),
-                        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-                    )))) {
-                        if let lat = sub.latitude, let lon = sub.longitude {
-                            Annotation("Submitted Location", coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon)) {
-                                Image(systemName: "mappin.circle.fill")
-                                    .font(.title)
-                                    .foregroundColor(.gliderBlue)
-                                    .background(Circle().fill(.white))
-                            }
-                        }
-                    }
+                    GoogleMapView(
+                        centerCoordinate: CLLocationCoordinate2D(latitude: sub.latitude, longitude: sub.longitude),
+                        distance: 5000,
+                        annotationCoordinate: CLLocationCoordinate2D(latitude: sub.latitude, longitude: sub.longitude),
+                        annotationTitle: "Submitted Location",
+                        isInteractivePicker: false,
+                        isDraggableAnnotation: false,
+                        onAnnotationDrag: nil,
+                        cameraTrigger: UUID()
+                    )
                     .frame(maxHeight: .infinity)
                     
                     VStack(alignment: .leading, spacing: 16) {
@@ -66,7 +68,7 @@ struct PendingGpsDetailView: View {
                                 .font(.caption)
                                 .fontWeight(.bold)
                                 .foregroundColor(.secondary)
-                            Text(sub.region)
+                            Text(sub.region ?? "Unknown Region")
                                 .font(.title3)
                                 .fontWeight(.semibold)
                         }
@@ -76,7 +78,7 @@ struct PendingGpsDetailView: View {
                                 .font(.caption)
                                 .fontWeight(.bold)
                                 .foregroundColor(.secondary)
-                            Text(String(format: "%.6f, %.6f", sub.latitude ?? 0.0, sub.longitude ?? 0.0))
+                            Text(String(format: "%.6f, %.6f", sub.latitude, sub.longitude))
                                 .font(.body)
                         }
                         
@@ -130,16 +132,18 @@ struct PendingGpsDetailView: View {
             }
         }
         .fullScreenCover(isPresented: $showingEditModal) {
-            if let sub = submission, let lat = sub.latitude, let lon = sub.longitude {
+            if let sub = submission {
                 GPSCalibrationEditWrapper(
                     gps: sub,
                     isPresented: $showingEditModal,
-                    onSave: { newCoord in
+                    onSave: { newCoord, newRegion in
+                        isLoading = true
                         Task {
                             try? await mountainsViewModel.updateGPSCalibration(
-                                submissionId: sub.id ?? "",
+                                submissionId: submissionId,
                                 lat: newCoord.latitude,
-                                lon: newCoord.longitude
+                                lon: newCoord.longitude,
+                                region: newRegion
                             )
                             fetchSubmission()
                         }

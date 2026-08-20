@@ -204,58 +204,60 @@ struct MountainDetailView: View {
                 }
                 
                 // Mountain Cover Photo Upload Box
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Mountain Photography")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
+                if mountain.isPubliclyApproved {
                     VStack(alignment: .leading, spacing: 12) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "photo.stack.fill")
-                                .font(.title2)
-                                .foregroundColor(.gliderBlue)
+                        Text("Mountain Photography")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "photo.stack.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.gliderBlue)
+                                
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(userPhotoService.photoUrl(for: mountain.id) == nil ? "Add Personal Cover Photo" : "Personal Cover Photo Set")
+                                        .font(.subheadline)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.primary)
+                                    Text("Set a private cover photo for this mountain. This image is visible only on your account.")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
                             
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(userPhotoService.photoUrl(for: mountain.id) == nil ? "Add Personal Cover Photo" : "Personal Cover Photo Set")
-                                    .font(.subheadline)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.primary)
-                                Text("Set a private cover photo for this mountain. This image is visible only on your account.")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                            PhotosPicker(selection: $selectedCoverPhotoItem, matching: .images) {
+                                HStack {
+                                    Spacer()
+                                    Image(systemName: isUploadingCoverPhoto ? "arrow.triangle.2.circlepath.camera.fill" : "camera.fill")
+                                    Text(isUploadingCoverPhoto ? "Saving photo..." : (userPhotoService.photoUrl(for: mountain.id) == nil ? "Upload Photo" : "Update Photo"))
+                                        .fontWeight(.bold)
+                                    Spacer()
+                                }
+                                .padding(.vertical, 10)
+                                .background(Color.gliderBlue)
+                                .foregroundColor(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                            }
+                            .disabled(isUploadingCoverPhoto || authViewModel.currentUser == nil)
+                            
+                            if authViewModel.currentUser == nil {
+                                Text("Please sign in to set a personal cover photo.")
+                                    .font(.caption2)
+                                    .foregroundColor(.orange)
                             }
                         }
-                        
-                        PhotosPicker(selection: $selectedCoverPhotoItem, matching: .images) {
-                            HStack {
-                                Spacer()
-                                Image(systemName: isUploadingCoverPhoto ? "arrow.triangle.2.circlepath.camera.fill" : "camera.fill")
-                                Text(isUploadingCoverPhoto ? "Saving photo..." : (userPhotoService.photoUrl(for: mountain.id) == nil ? "Upload Photo" : "Update Photo"))
-                                    .fontWeight(.bold)
-                                Spacer()
-                            }
-                            .padding(.vertical, 10)
-                            .background(Color.gliderBlue)
-                            .foregroundColor(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                        }
-                        .disabled(isUploadingCoverPhoto || authViewModel.currentUser == nil)
-                        
-                        if authViewModel.currentUser == nil {
-                            Text("Please sign in to set a personal cover photo.")
-                                .font(.caption2)
-                                .foregroundColor(.orange)
-                        }
+                        .padding(14)
+                        .background(Color.secondary.opacity(0.1))
+                        .cornerRadius(14)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.gliderBlue.opacity(0.3), lineWidth: 1)
+                        )
                     }
-                    .padding(14)
-                    .background(Color.secondary.opacity(0.1))
-                    .cornerRadius(14)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.gliderBlue.opacity(0.3), lineWidth: 1)
-                    )
+                    .padding(.bottom, 20)
                 }
-                .padding(.bottom, 20)
             }
             .padding(.horizontal)
         }

@@ -25,7 +25,13 @@ struct UserContributionsView: View {
                 let snapshot = try await db.collection("coordinate_submissions")
                     .whereField("contributorEmail", isEqualTo: email)
                     .getDocuments()
-                let subs = snapshot.documents.compactMap { try? $0.data(as: CoordinateSubmission.self) }
+                let subs = snapshot.documents.compactMap { doc -> CoordinateSubmission? in
+                    if let sub = try? doc.data(as: CoordinateSubmission.self) {
+                        sub.id = doc.documentID
+                        return sub
+                    }
+                    return nil
+                }
                 await MainActor.run {
                     userGpsSubmissions = subs.sorted(by: { $0.displayDate > $1.displayDate })
                 }
@@ -36,7 +42,8 @@ struct UserContributionsView: View {
     }
     
     var body: some View {
-        Group {
+        NavigationView {
+            Group {
             if let email = authViewModel.currentUser?.email {
                 let pendingMountains = mountainsViewModel.userPendingMountains(forEmail: email)
                 let approvedMountains = mountainsViewModel.userApprovedMountains(forEmail: email)
@@ -64,12 +71,7 @@ struct UserContributionsView: View {
                         if !pendingMountains.isEmpty {
                             Section(header: Text("Pending Mountains (\(pendingMountains.count))")) {
                                 ForEach(pendingMountains) { peak in
-                                    ZStack {
-                                        NavigationLink(destination: MountainDetailView(mountainId: peak.id)) {
-                                            EmptyView()
-                                        }
-                                        .opacity(0)
-                                        
+                                    NavigationLink(destination: MountainDetailView(mountain: peak)) {
                                         contributionCard(for: peak, status: "Pending", statusColor: .orange)
                                     }
                                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -96,12 +98,7 @@ struct UserContributionsView: View {
                                         case .rejected, .duplicate: return .red
                                         }
                                     }()
-                                    ZStack {
-                                        NavigationLink(destination: PendingGpsDetailView(submissionId: submission.id ?? "")) {
-                                            EmptyView()
-                                        }
-                                        .opacity(0)
-
+                                    NavigationLink(destination: PendingGpsDetailView(submissionId: submission.id ?? "")) {
                                         gpsContributionCard(for: submission, status: statusStr, statusColor: color)
                                     }
                                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -125,12 +122,7 @@ struct UserContributionsView: View {
                         if !approvedMountains.isEmpty {
                             Section(header: Text("Approved Contributions (\(approvedMountains.count))")) {
                                 ForEach(approvedMountains) { peak in
-                                    ZStack {
-                                        NavigationLink(destination: MountainDetailView(mountainId: peak.id)) {
-                                            EmptyView()
-                                        }
-                                        .opacity(0)
-                                        
+                                    NavigationLink(destination: MountainDetailView(mountain: peak)) {
                                         contributionCard(for: peak, status: "Approved", statusColor: .green)
                                     }
                                 }
@@ -150,6 +142,7 @@ struct UserContributionsView: View {
             if let email = authViewModel.currentUser?.email {
                 refreshGps(email: email)
             }
+        }
         }
     }
     
@@ -224,7 +217,7 @@ import CoreLocation
 struct GPSCalibrationEditWrapper: View {
     let gps: CoordinateSubmission
     @Binding var isPresented: Bool
-    var onSave: (CLLocationCoordinate2D) -> Void
+    var onSave: (CLLocationCoordinate2D, String?) -> Void
     
     @State private var tempCoordinate: CLLocationCoordinate2D?
     @State private var tempPlaceName: String?
@@ -235,7 +228,7 @@ struct GPSCalibrationEditWrapper: View {
                 selectedCoordinate: $tempCoordinate,
                 selectedPlaceName: $tempPlaceName,
                 onConfirm: { newCoord in
-                    onSave(newCoord)
+                    onSave(newCoord, tempPlaceName)
                     isPresented = false
                 }
             )

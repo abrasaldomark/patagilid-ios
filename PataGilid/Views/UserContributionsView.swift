@@ -64,8 +64,14 @@ struct UserContributionsView: View {
                         if !pendingMountains.isEmpty {
                             Section(header: Text("Pending Mountains (\(pendingMountains.count))")) {
                                 ForEach(pendingMountains) { peak in
-                                    contributionCard(for: peak, status: "Pending", statusColor: .orange)
-                                        .padding(.vertical, 4)
+                                    ZStack {
+                                        NavigationLink(destination: MountainDetailView(mountainId: peak.id)) {
+                                            EmptyView()
+                                        }
+                                        .opacity(0)
+                                        
+                                        contributionCard(for: peak, status: "Pending", statusColor: .orange)
+                                    }
                                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                             Button(role: .destructive) {
                                                 Task {
@@ -74,13 +80,6 @@ struct UserContributionsView: View {
                                             } label: {
                                                 Label("Delete", systemImage: "trash")
                                             }
-                                            
-                                            Button {
-                                                editingMountain = peak
-                                            } label: {
-                                                Label("Edit", systemImage: "pencil")
-                                            }
-                                            .tint(.blue)
                                         }
                                 }
                             }
@@ -97,8 +96,14 @@ struct UserContributionsView: View {
                                         case .rejected, .duplicate: return .red
                                         }
                                     }()
-                                    gpsContributionCard(for: submission, status: statusStr, statusColor: color)
-                                        .padding(.vertical, 4)
+                                    ZStack {
+                                        NavigationLink(destination: PendingGpsDetailView(submissionId: submission.id ?? "")) {
+                                            EmptyView()
+                                        }
+                                        .opacity(0)
+
+                                        gpsContributionCard(for: submission, status: statusStr, statusColor: color)
+                                    }
                                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                             if submission.status == .pending {
                                                 Button(role: .destructive) {
@@ -111,13 +116,6 @@ struct UserContributionsView: View {
                                                 } label: {
                                                     Label("Delete", systemImage: "trash")
                                                 }
-                                                
-                                                Button {
-                                                    editingGPS = submission
-                                                } label: {
-                                                    Label("Edit", systemImage: "pencil")
-                                                }
-                                                .tint(.blue)
                                             }
                                         }
                                 }
@@ -127,8 +125,14 @@ struct UserContributionsView: View {
                         if !approvedMountains.isEmpty {
                             Section(header: Text("Approved Contributions (\(approvedMountains.count))")) {
                                 ForEach(approvedMountains) { peak in
-                                    contributionCard(for: peak, status: "Approved", statusColor: .green)
-                                        .padding(.vertical, 4)
+                                    ZStack {
+                                        NavigationLink(destination: MountainDetailView(mountainId: peak.id)) {
+                                            EmptyView()
+                                        }
+                                        .opacity(0)
+                                        
+                                        contributionCard(for: peak, status: "Approved", statusColor: .green)
+                                    }
                                 }
                             }
                         }
@@ -146,33 +150,6 @@ struct UserContributionsView: View {
             if let email = authViewModel.currentUser?.email {
                 refreshGps(email: email)
             }
-        }
-        .sheet(item: $editingMountain) { mountain in
-            NavigationStack {
-                AddCustomMountainView(
-                    onMountainSubmitted: { _, _, _ in
-                        editingMountain = nil
-                    },
-                    editingMountain: mountain
-                )
-            }
-        }
-        .fullScreenCover(item: $editingGPS) { gps in
-            GPSCalibrationEditWrapper(
-                gps: gps,
-                isPresented: Binding(
-                    get: { editingGPS != nil },
-                    set: { if !$0 { editingGPS = nil } }
-                ),
-                onSave: { newCoord in
-                    Task {
-                        try? await mountainsViewModel.updateGPSCalibration(submissionId: gps.id ?? "", lat: newCoord.latitude, lon: newCoord.longitude)
-                        if let email = authViewModel.currentUser?.email {
-                            refreshGps(email: email)
-                        }
-                    }
-                }
-            )
         }
     }
     

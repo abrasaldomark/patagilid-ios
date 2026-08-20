@@ -41,6 +41,7 @@ struct MountainDetailView: View {
     @State private var showingInternalMap: Bool = false
     @State private var showingCoordinateContribution: Bool = false
     @State private var showCopiedToast: Bool = false
+    @State private var showingEditModal: Bool = false
     
     @State private var selectedCoverPhotoItem: PhotosPickerItem?
     @State private var isUploadingCoverPhoto: Bool = false
@@ -262,7 +263,16 @@ struct MountainDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: 4) {
+                HStack(spacing: 8) {
+                    if !mountain.isPubliclyApproved, let email = authViewModel.currentUser?.email, mountain.contributorEmail == email {
+                        Button {
+                            showingEditModal = true
+                        } label: {
+                            Text("Edit")
+                                .fontWeight(.semibold)
+                                .foregroundColor(.gliderBlue)
+                        }
+                    }
                     Button {
                         logSessionId = UUID()
                         showingLogModal = true
@@ -278,6 +288,16 @@ struct MountainDetailView: View {
             HikeLogCreationView(mountain: mountain)
                 .id(logSessionId)
                 .environmentObject(authViewModel)
+        }
+        .sheet(isPresented: $showingEditModal) {
+            NavigationStack {
+                AddCustomMountainView(
+                    onMountainSubmitted: { _, _, _ in
+                        showingEditModal = false
+                    },
+                    editingMountain: mountain
+                )
+            }
         }
         .sheet(isPresented: $showSaveToListSheet) {
             SaveToListSheet(mountainId: mountain.id)
